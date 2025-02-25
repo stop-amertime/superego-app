@@ -1,5 +1,5 @@
 /**
- * Interface for a superego prompt
+ * Interface for a superego constitution
  */
 export interface Prompt {
   id: string;
@@ -10,9 +10,9 @@ export interface Prompt {
 }
 
 /**
- * Default built-in prompts
+ * Default built-in constitutions
  */
-export const BUILT_IN_PROMPTS: Prompt[] = [
+export const BUILT_IN_CONSTITUTIONS: Prompt[] = [
   {
     id: 'default',
     name: 'Default',

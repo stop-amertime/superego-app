@@ -9,25 +9,25 @@ interface PromptManagerProps {
 }
 
 function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps) {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
-  const [newPromptName, setNewPromptName] = useState('');
-  const [newPromptContent, setNewPromptContent] = useState('');
+  const [constitutions, setConstitutions] = useState<Prompt[]>([]);
+  const [editingConstitution, setEditingConstitution] = useState<Prompt | null>(null);
+  const [newConstitutionName, setNewConstitutionName] = useState('');
+  const [newConstitutionContent, setNewConstitutionContent] = useState('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  // Load prompts from prompts.json and localStorage on component mount
+  // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
-    const loadPrompts = async () => {
-      // Load built-in prompts from prompts.json
-      const builtInPrompts: Prompt[] = [];
+    const loadConstitutions = async () => {
+      // Load built-in constitutions from prompts.json
+      const builtInConstitutions: Prompt[] = [];
       
       try {
         const response = await fetch('/prompts.json');
         if (response.ok) {
           const data = await response.json();
-          // Convert the prompts from the JSON file to Prompt objects
+          // Convert the constitutions from the JSON file to Prompt objects
           data.prompts.forEach((p: any) => {
-            builtInPrompts.push({
+            builtInConstitutions.push({
               id: p.id,
               name: p.name,
               content: p.content,
@@ -42,43 +42,43 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
         console.error('Error loading prompts.json file:', error);
       }
       
-      // Load custom prompts from localStorage
-      let customPrompts: Prompt[] = [];
-      const savedPrompts = localStorage.getItem('superego-prompts');
+      // Load custom constitutions from localStorage
+      let customConstitutions: Prompt[] = [];
+      const savedConstitutions = localStorage.getItem('superego-constitutions');
       
-      if (savedPrompts) {
+      if (savedConstitutions) {
         try {
-          customPrompts = JSON.parse(savedPrompts);
+          customConstitutions = JSON.parse(savedConstitutions);
         } catch (error) {
-          console.error('Error parsing saved prompts:', error);
+          console.error('Error parsing saved constitutions:', error);
         }
       }
       
-      // Combine built-in prompts with custom prompts
-      setPrompts([...builtInPrompts, ...customPrompts]);
+      // Combine built-in constitutions with custom constitutions
+      setConstitutions([...builtInConstitutions, ...customConstitutions]);
     };
     
-    loadPrompts();
+    loadConstitutions();
   }, []);
 
-  // Save custom prompts to localStorage when they change
+  // Save custom constitutions to localStorage when they change
   useEffect(() => {
-    const customPrompts = prompts.filter(p => !p.isBuiltIn);
-    if (customPrompts.length > 0) {
-      localStorage.setItem('superego-prompts', JSON.stringify(customPrompts));
+    const customConstitutions = constitutions.filter(p => !p.isBuiltIn);
+    if (customConstitutions.length > 0) {
+      localStorage.setItem('superego-constitutions', JSON.stringify(customConstitutions));
     }
-  }, [prompts]);
+  }, [constitutions]);
 
-  // Handle prompt selection
+  // Handle constitution selection
   const handleSelectPrompt = (promptId: string) => {
     onSelectPrompt(promptId);
   };
 
-  // Start editing a prompt
+  // Start editing a constitution
   const handleEditPrompt = (prompt: Prompt) => {
     if (prompt.isBuiltIn) {
-      // Create a copy of the built-in prompt
-      const newPrompt: Prompt = {
+      // Create a copy of the built-in constitution
+      const newConstitution: Prompt = {
         ...prompt,
         id: `custom-${Date.now()}`,
         name: `${prompt.name} (Custom)`,
@@ -86,94 +86,94 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
         lastUpdated: new Date().toISOString()
       };
       
-      setEditingPrompt(newPrompt);
-      setNewPromptName(newPrompt.name);
-      setNewPromptContent(newPrompt.content);
+      setEditingConstitution(newConstitution);
+      setNewConstitutionName(newConstitution.name);
+      setNewConstitutionContent(newConstitution.content);
     } else {
-      setEditingPrompt(prompt);
-      setNewPromptName(prompt.name);
-      setNewPromptContent(prompt.content);
+      setEditingConstitution(prompt);
+      setNewConstitutionName(prompt.name);
+      setNewConstitutionContent(prompt.content);
     }
   };
 
-  // Save edited prompt
+  // Save edited constitution
   const handleSavePrompt = () => {
-    if (!editingPrompt) return;
+    if (!editingConstitution) return;
     
-    const updatedPrompt: Prompt = {
-      ...editingPrompt,
-      name: newPromptName.trim() || editingPrompt.name,
-      content: newPromptContent.trim() || editingPrompt.content,
+    const updatedConstitution: Prompt = {
+      ...editingConstitution,
+      name: newConstitutionName.trim() || editingConstitution.name,
+      content: newConstitutionContent.trim() || editingConstitution.content,
       lastUpdated: new Date().toISOString()
     };
     
-    // Check if this is a new prompt or an update to an existing one
-    const promptExists = prompts.some(p => p.id === updatedPrompt.id);
+    // Check if this is a new constitution or an update to an existing one
+    const constitutionExists = constitutions.some(p => p.id === updatedConstitution.id);
     
-    if (promptExists) {
-      setPrompts(prev => prev.map(p => p.id === updatedPrompt.id ? updatedPrompt : p));
+    if (constitutionExists) {
+      setConstitutions(prev => prev.map(p => p.id === updatedConstitution.id ? updatedConstitution : p));
     } else {
-      setPrompts(prev => [...prev, updatedPrompt]);
+      setConstitutions(prev => [...prev, updatedConstitution]);
     }
     
-    // Select the updated prompt
-    onSelectPrompt(updatedPrompt.id);
+    // Select the updated constitution
+    onSelectPrompt(updatedConstitution.id);
     
     // Reset editing state
-    setEditingPrompt(null);
-    setNewPromptName('');
-    setNewPromptContent('');
+    setEditingConstitution(null);
+    setNewConstitutionName('');
+    setNewConstitutionContent('');
   };
 
   // Cancel editing
   const handleCancelEdit = () => {
-    setEditingPrompt(null);
-    setNewPromptName('');
-    setNewPromptContent('');
+    setEditingConstitution(null);
+    setNewConstitutionName('');
+    setNewConstitutionContent('');
     setIsCreatingNew(false);
   };
 
-  // Delete a prompt
+  // Delete a constitution
   const handleDeletePrompt = (promptId: string) => {
-    // Cannot delete built-in prompts
-    const promptToDelete = prompts.find(p => p.id === promptId);
-    if (!promptToDelete || promptToDelete.isBuiltIn) return;
+    // Cannot delete built-in constitutions
+    const constitutionToDelete = constitutions.find(p => p.id === promptId);
+    if (!constitutionToDelete || constitutionToDelete.isBuiltIn) return;
     
-    if (window.confirm(`Are you sure you want to delete the prompt "${promptToDelete.name}"?`)) {
-      setPrompts(prev => prev.filter(p => p.id !== promptId));
+    if (window.confirm(`Are you sure you want to delete the constitution "${constitutionToDelete.name}"?`)) {
+      setConstitutions(prev => prev.filter(p => p.id !== promptId));
       
-      // If the deleted prompt was selected, select the default prompt
+      // If the deleted constitution was selected, select the default constitution
       if (selectedPromptId === promptId) {
         onSelectPrompt('default');
       }
     }
   };
 
-  // Start creating a new prompt
+  // Start creating a new constitution
   const handleCreateNewPrompt = () => {
-    const newPrompt: Prompt = {
+    const newConstitution: Prompt = {
       id: `custom-${Date.now()}`,
-      name: 'New Prompt',
+      name: 'New Constitution',
       content: '',
       isBuiltIn: false,
       lastUpdated: new Date().toISOString()
     };
     
-    setEditingPrompt(newPrompt);
-    setNewPromptName(newPrompt.name);
-    setNewPromptContent(newPrompt.content);
+    setEditingConstitution(newConstitution);
+    setNewConstitutionName(newConstitution.name);
+    setNewConstitutionContent(newConstitution.content);
     setIsCreatingNew(true);
   };
 
   return (
     <div className="prompt-manager-page">
-      <h2>Prompt Manager</h2>
+      <h2>Constitution Manager</h2>
       
       <div className="prompt-manager">
-        {!editingPrompt ? (
+        {!editingConstitution ? (
           <>
             <div className="prompt-list-header">
-              <h3>Superego Prompts</h3>
+              <h3>Superego Constitutions</h3>
               <button 
                 className="button primary"
                 onClick={handleCreateNewPrompt}
@@ -183,8 +183,8 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
             </div>
             
             <div className="prompt-list">
-              <h4>Built-in Prompts</h4>
-              {prompts.filter(p => p.isBuiltIn).map(prompt => (
+              <h4>Built-in Constitutions</h4>
+              {constitutions.filter(p => p.isBuiltIn).map(prompt => (
                 <div 
                   key={prompt.id}
                   className={`prompt-item ${selectedPromptId === prompt.id ? 'active' : ''}`}
@@ -202,7 +202,7 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                     <button 
                       className="edit-button"
                       onClick={() => handleEditPrompt(prompt)}
-                      title="Create a custom copy of this prompt"
+                      title="Create a custom copy of this constitution"
                     >
                       Copy
                     </button>
@@ -210,10 +210,10 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                 </div>
               ))}
               
-              {prompts.filter(p => !p.isBuiltIn).length > 0 && (
+              {constitutions.filter(p => !p.isBuiltIn).length > 0 && (
                 <>
-                  <h4>Custom Prompts</h4>
-                  {prompts.filter(p => !p.isBuiltIn).map(prompt => (
+                  <h4>Custom Constitutions</h4>
+                  {constitutions.filter(p => !p.isBuiltIn).map(prompt => (
                     <div 
                       key={prompt.id}
                       className={`prompt-item ${selectedPromptId === prompt.id ? 'active' : ''}`}
@@ -231,14 +231,14 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                         <button 
                           className="edit-button"
                           onClick={() => handleEditPrompt(prompt)}
-                          title="Edit this prompt"
+                          title="Edit this constitution"
                         >
                           Edit
                         </button>
                         <button 
                           className="delete-button"
                           onClick={() => handleDeletePrompt(prompt.id)}
-                          title="Delete this prompt"
+                          title="Delete this constitution"
                         >
                           Delete
                         </button>
@@ -251,26 +251,26 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
           </>
         ) : (
           <div className="prompt-editor">
-            <h3>{isCreatingNew ? 'Create New Prompt' : 'Edit Prompt'}</h3>
+            <h3>{isCreatingNew ? 'Create New Constitution' : 'Edit Constitution'}</h3>
             
             <div className="form-group">
-              <label htmlFor="promptName">Prompt Name:</label>
+              <label htmlFor="promptName">Constitution Name:</label>
               <input 
                 type="text"
                 id="promptName"
-                value={newPromptName}
-                onChange={(e) => setNewPromptName(e.target.value)}
-                placeholder="Enter a name for this prompt"
+                value={newConstitutionName}
+                onChange={(e) => setNewConstitutionName(e.target.value)}
+                placeholder="Enter a name for this constitution"
               />
             </div>
             
             <div className="form-group">
-              <label htmlFor="promptContent">Prompt Content:</label>
+              <label htmlFor="promptContent">Constitution Content:</label>
               <textarea 
                 id="promptContent"
-                value={newPromptContent}
-                onChange={(e) => setNewPromptContent(e.target.value)}
-                placeholder="Enter the prompt content"
+                value={newConstitutionContent}
+                onChange={(e) => setNewConstitutionContent(e.target.value)}
+                placeholder="Enter the constitution content"
                 rows={15}
               />
             </div>
@@ -279,7 +279,7 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
               <button 
                 className="button primary"
                 onClick={handleSavePrompt}
-                disabled={!newPromptName.trim() || !newPromptContent.trim()}
+                disabled={!newConstitutionName.trim() || !newConstitutionContent.trim()}
               >
                 Save
               </button>

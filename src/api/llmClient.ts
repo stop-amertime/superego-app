@@ -13,7 +13,7 @@ export interface Config {
   anthropicBaseModel: string;
   openrouterSuperEgoModel: string;
   openrouterBaseModel: string;
-  superEgoPromptFile: string;
+  superEgoConstitutionFile: string;
   saveHistory: boolean;
 }
 
@@ -30,20 +30,20 @@ export interface Message {
 export type OnContentCallback = (content: string) => void;
 
 /**
- * Get the superego instructions based on the prompt ID
+ * Get the superego instructions based on the constitution ID
  */
-export async function getSuperEgoInstructions(promptId: string): Promise<string> {
-  // First check custom prompts in localStorage
-  const savedPrompts = localStorage.getItem('superego-prompts');
-  if (savedPrompts) {
+export async function getSuperEgoInstructions(constitutionId: string): Promise<string> {
+  // First check custom constitutions in localStorage
+  const savedConstitutions = localStorage.getItem('superego-constitutions');
+  if (savedConstitutions) {
     try {
-      const customPrompts = JSON.parse(savedPrompts);
-      const customPrompt = customPrompts.find((p: any) => p.id === promptId);
-      if (customPrompt) {
-        return customPrompt.content;
+      const customConstitutions = JSON.parse(savedConstitutions);
+      const customConstitution = customConstitutions.find((p: any) => p.id === constitutionId);
+      if (customConstitution) {
+        return customConstitution.content;
       }
     } catch (error) {
-      console.error('Error parsing saved prompts:', error);
+      console.error('Error parsing saved constitutions:', error);
     }
   }
   
@@ -52,11 +52,11 @@ export async function getSuperEgoInstructions(promptId: string): Promise<string>
     const response = await fetch('/prompts.json');
     if (response.ok) {
       const data = await response.json();
-      const prompt = data.prompts.find((p: any) => p.id === promptId);
-      if (prompt) {
-        return prompt.content;
+      const constitution = data.prompts.find((p: any) => p.id === constitutionId);
+      if (constitution) {
+        return constitution.content;
       } else {
-        console.error(`Prompt with ID ${promptId} not found in prompts.json`);
+        console.error(`Constitution with ID ${constitutionId} not found in prompts.json`);
       }
     } else {
       console.error('Failed to load prompts.json file');
@@ -65,7 +65,7 @@ export async function getSuperEgoInstructions(promptId: string): Promise<string>
     console.error('Error loading prompts.json file:', error);
   }
   
-  // Fallback to a basic prompt if all else fails
+  // Fallback to a basic constitution if all else fails
   return `You are a screening agent that evaluates user inputs before they are sent to the main AI assistant.
 Your job is to analyze the input and provide your thoughts on it.
 
@@ -119,8 +119,8 @@ export async function streamSuperEgoResponse(
   // Initialize clients
   const { anthropicClient, openrouterClient } = initClients(config);
   
-  // Get instructions from the configured prompt file
-  const systemPrompt = await getSuperEgoInstructions(config.superEgoPromptFile);
+  // Get instructions from the configured constitution file
+  const systemPrompt = await getSuperEgoInstructions(config.superEgoConstitutionFile);
   const userMessage = `Evaluate this user input: ${userInput}`;
   
   let fullResponse = '';

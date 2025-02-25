@@ -104,7 +104,7 @@
   margin-top: 0.5rem;
 }
 
-.prompt-manager-container {
+.constitution-manager-container {
   background-color: #f8fafc;
   border-radius: 8px;
   padding: 1.5rem;
@@ -168,7 +168,7 @@
     border-bottom-color: #90cdf4;
   }
   
-  .config-section, .prompt-manager-container {
+  .config-section, .constitution-manager-container {
     background-color: #2d3748;
   }
   

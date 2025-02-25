@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './SuperegoResponse.css';
-import { Prompt, BUILT_IN_PROMPTS } from '../types/Prompt';
+import { Prompt } from '../types/Prompt';
 
 interface Message {
   id: string;
@@ -29,21 +29,50 @@ function SuperegoResponse({
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isChangingPrompt, setIsChangingPrompt] = useState(false);
   
-  // Load prompts from localStorage on component mount
+  // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
-    const savedPrompts = localStorage.getItem('superego-prompts');
-    let customPrompts: Prompt[] = [];
-    
-    if (savedPrompts) {
+    const loadConstitutions = async () => {
+      // Load built-in constitutions from prompts.json
+      const builtInConstitutions: Prompt[] = [];
+      
       try {
-        customPrompts = JSON.parse(savedPrompts);
+        const response = await fetch('/prompts.json');
+        if (response.ok) {
+          const data = await response.json();
+          // Convert the constitutions from the JSON file to Prompt objects
+          data.prompts.forEach((p: any) => {
+            builtInConstitutions.push({
+              id: p.id,
+              name: p.name,
+              content: p.content,
+              isBuiltIn: true,
+              lastUpdated: new Date().toISOString()
+            });
+          });
+        } else {
+          console.error('Failed to load prompts.json file');
+        }
       } catch (error) {
-        console.error('Error parsing saved prompts:', error);
+        console.error('Error loading prompts.json file:', error);
       }
-    }
+      
+      // Load custom constitutions from localStorage
+      let customConstitutions: Prompt[] = [];
+      const savedConstitutions = localStorage.getItem('superego-constitutions');
+      
+      if (savedConstitutions) {
+        try {
+          customConstitutions = JSON.parse(savedConstitutions);
+        } catch (error) {
+          console.error('Error parsing saved constitutions:', error);
+        }
+      }
+      
+      // Combine built-in constitutions with custom constitutions
+      setPrompts([...builtInConstitutions, ...customConstitutions]);
+    };
     
-    // Combine built-in prompts with custom prompts
-    setPrompts([...BUILT_IN_PROMPTS, ...customPrompts]);
+    loadConstitutions();
   }, []);
   
   // Handle prompt change
@@ -71,13 +100,13 @@ function SuperegoResponse({
         <div className="superego-header">
           <h3>Superego Evaluation</h3>
           {onChangePrompt && (
-            <div className="current-prompt">
-              Using prompt: <span onClick={() => setIsPromptSelectorOpen(prev => !prev)}>{getCurrentPromptName()} ▾</span>
-              
-              {isPromptSelectorOpen && (
-                <div className="prompt-selector">
-                  <div className="prompt-selector-header">
-                    <h4>Select a different prompt</h4>
+          <div className="current-prompt">
+            Using constitution: <span onClick={() => setIsPromptSelectorOpen(prev => !prev)}>{getCurrentPromptName()} ▾</span>
+            
+            {isPromptSelectorOpen && (
+              <div className="prompt-selector">
+                <div className="prompt-selector-header">
+                  <h4>Select a different constitution</h4>
                     <button 
                       className="close-button"
                       onClick={() => setIsPromptSelectorOpen(false)}
@@ -86,9 +115,9 @@ function SuperegoResponse({
                     </button>
                   </div>
                   <div className="prompt-list">
-                    {/* Built-in prompts */}
+                    {/* Built-in constitutions */}
                     <div className="prompt-category">
-                      <h5>Built-in Prompts</h5>
+                      <h5>Built-in Constitutions</h5>
                       {prompts.filter(p => p.isBuiltIn).map(prompt => (
                         <div 
                           key={prompt.id}
@@ -100,10 +129,10 @@ function SuperegoResponse({
                       ))}
                     </div>
                     
-                    {/* Custom prompts */}
+                    {/* Custom constitutions */}
                     {prompts.filter(p => !p.isBuiltIn).length > 0 && (
                       <div className="prompt-category">
-                        <h5>Custom Prompts</h5>
+                        <h5>Custom Constitutions</h5>
                         {prompts.filter(p => !p.isBuiltIn).map(prompt => (
                           <div 
                             key={prompt.id}
@@ -153,14 +182,14 @@ function SuperegoResponse({
               className="button secondary"
               disabled={isChangingPrompt}
             >
-              {isPromptSelectorOpen ? 'Close prompt selector' : 'Try a different prompt'}
+              {isPromptSelectorOpen ? 'Close constitution selector' : 'Try a different constitution'}
             </button>
           )}
         </div>
         {isChangingPrompt && (
           <div className="changing-prompt-indicator">
             <div className="loading-spinner"></div>
-            <p>Evaluating with new prompt...</p>
+            <p>Evaluating with new constitution...</p>
           </div>
         )}
       </div>

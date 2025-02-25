@@ -42,7 +42,7 @@ function Chat() {
     anthropicBaseModel: 'claude-3-7-sonnet-20250219',
     openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
-    superEgoPromptFile: 'default',
+    superEgoConstitutionFile: 'default',
     saveHistory: true
   });
   
@@ -307,23 +307,23 @@ function Chat() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    // Call the superego API with the current prompt
+    // Call the superego API with the current constitution
     await evaluateWithSuperego(input);
   };
   
-  // Evaluate input with superego using specified prompt
-  const evaluateWithSuperego = async (inputText: string, promptId?: string) => {
-    // Use the provided promptId or the current config
+  // Evaluate input with superego using specified constitution
+  const evaluateWithSuperego = async (inputText: string, constitutionId?: string) => {
+    // Use the provided constitutionId or the current config
     const evaluationConfig = {
       ...config,
-      superEgoPromptFile: promptId || config.superEgoPromptFile
+      superEgoConstitutionFile: constitutionId || config.superEgoConstitutionFile
     };
     
     setSuperEgoLoading(true);
     
     try {
       console.log('Calling superego API with input:', inputText);
-      console.log('Using prompt:', evaluationConfig.superEgoPromptFile);
+      console.log('Using constitution:', evaluationConfig.superEgoConstitutionFile);
       
       // Stream the superego response
       const superEgoResponse = await streamSuperEgoResponse(
@@ -362,8 +362,8 @@ function Chat() {
     }
   };
   
-  // Handle changing the prompt during evaluation
-  const handleChangePrompt = async (promptId: string) => {
+  // Handle changing the constitution during evaluation
+  const handleChangePrompt = async (constitutionId: string) => {
     // Find the last user message
     let lastUserMessage = null;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -378,8 +378,8 @@ function Chat() {
       return;
     }
     
-    // Re-evaluate the last user message with the new prompt
-    await evaluateWithSuperego(lastUserMessage.content, promptId);
+    // Re-evaluate the last user message with the new constitution
+    await evaluateWithSuperego(lastUserMessage.content, constitutionId);
   };
   
   // Handle sending to main model
@@ -528,7 +528,7 @@ function Chat() {
             >
               Clear Chat
             </button>
-            <Link to="/prompts" className="button secondary">Prompts</Link>
+            <Link to="/prompts" className="button secondary">Constitutions</Link>
             <Link to="/config" className="button secondary">Settings</Link>
           </div>
         </div>
@@ -551,7 +551,7 @@ function Chat() {
               onSend={handleSendToModel} 
               onRetry={handleRetry}
               onChangePrompt={handleChangePrompt}
-              currentPromptId={config.superEgoPromptFile}
+              currentPromptId={config.superEgoConstitutionFile}
             />
           )}
           

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Config.css';
-import { Prompt, BUILT_IN_PROMPTS } from '../types/Prompt';
+import { Prompt } from '../types/Prompt';
 
 function Config() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ function Config() {
     anthropicBaseModel: 'claude-3-7-sonnet-20250219',
     openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
-    superEgoPromptFile: 'default',
+    superEgoConstitutionFile: 'default',
     saveHistory: true
   });
   
@@ -182,43 +182,71 @@ function Config() {
         </div>
         
         <div className="config-section">
-          <h3>Prompt Settings</h3>
+          <h3>Constitution Settings</h3>
           <div className="form-group">
-            <label htmlFor="superEgoPromptFile">Default Superego Prompt:</label>
+            <label htmlFor="superEgoConstitutionFile">Default Superego Constitution:</label>
             <select 
-              id="superEgoPromptFile" 
-              name="superEgoPromptFile" 
-              value={config.superEgoPromptFile}
+              id="superEgoConstitutionFile" 
+              name="superEgoConstitutionFile" 
+              value={config.superEgoConstitutionFile}
               onChange={handleChange}
             >
-              {/* Built-in prompts */}
-              {BUILT_IN_PROMPTS.map(prompt => (
-                <option key={prompt.id} value={prompt.id}>
-                  {prompt.name} (Built-in)
-                </option>
-              ))}
-              
-              {/* Custom prompts */}
+              {/* Built-in constitutions */}
               {(() => {
-                const savedPrompts = localStorage.getItem('superego-prompts');
-                if (!savedPrompts) return null;
+                // Fetch built-in constitutions from prompts.json
+                const [builtInConstitutions, setBuiltInConstitutions] = useState<Prompt[]>([]);
+                
+                useEffect(() => {
+                  const fetchConstitutions = async () => {
+                    try {
+                      const response = await fetch('/prompts.json');
+                      if (response.ok) {
+                        const data = await response.json();
+                        const constitutions = data.prompts.map((p: any) => ({
+                          id: p.id,
+                          name: p.name,
+                          content: p.content,
+                          isBuiltIn: true,
+                          lastUpdated: new Date().toISOString()
+                        }));
+                        setBuiltInConstitutions(constitutions);
+                      }
+                    } catch (error) {
+                      console.error('Error loading constitutions:', error);
+                    }
+                  };
+                  
+                  fetchConstitutions();
+                }, []);
+                
+                return builtInConstitutions.map(constitution => (
+                  <option key={constitution.id} value={constitution.id}>
+                    {constitution.name} (Built-in)
+                  </option>
+                ));
+              })()}
+              
+              {/* Custom constitutions */}
+              {(() => {
+                const savedConstitutions = localStorage.getItem('superego-constitutions');
+                if (!savedConstitutions) return null;
                 
                 try {
-                  const customPrompts = JSON.parse(savedPrompts) as Prompt[];
-                  return customPrompts.map(prompt => (
+                  const customConstitutions = JSON.parse(savedConstitutions) as Prompt[];
+                  return customConstitutions.map(prompt => (
                     <option key={prompt.id} value={prompt.id}>
                       {prompt.name} (Custom)
                     </option>
                   ));
                 } catch (error) {
-                  console.error('Error parsing saved prompts:', error);
+                  console.error('Error parsing saved constitutions:', error);
                   return null;
                 }
               })()}
             </select>
           </div>
           <p className="help-text">
-            <Link to="/prompts" className="link">Manage your prompts in the Prompt Manager</Link>
+            <Link to="/prompts" className="link">Manage your constitutions in the Constitution Manager</Link>
           </p>
         </div>
         
@@ -247,7 +275,7 @@ function Config() {
           Start Chat
         </button>
         <Link to="/prompts" className="button secondary">
-          Prompt Manager
+          Constitution Manager
         </Link>
         <Link to="/" className="button secondary">
           Back to Home
