@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
 
@@ -7,7 +7,6 @@ import Home from './components/Home';
 import Chat from './components/Chat';
 import Config from './components/Config';
 import PromptManager from './components/PromptManager';
-
 function App() {
   return (
     <div className="app">

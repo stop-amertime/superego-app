@@ -84,12 +84,6 @@ function Config() {
     navigate(path);
   };
   
-  // Handle prompt selection
-  const handleSelectPrompt = (promptId: string) => {
-    setConfig(prev => ({ ...prev, superEgoPromptFile: promptId }));
-    setIsDirty(true);
-  };
-
   return (
     <div className="config">
       <h2>Configuration</h2>
