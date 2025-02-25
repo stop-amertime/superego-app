@@ -1,0 +1,33 @@
+.app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent scrolling on the app container */
+}
+
+.app-header {
+  text-align: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #3182ce;
+}
+
+.app-header p {
+  margin: 0.5rem 0 0;
+  color: #718096;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent scrolling on the main element */
+  padding: 0; /* Remove padding to maximize space */
+}

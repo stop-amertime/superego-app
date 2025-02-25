@@ -1,0 +1,89 @@
+.home {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.welcome-card {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-card h2 {
+  margin-top: 0;
+  color: #2c5282;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.button.primary {
+  background-color: #3182ce;
+  color: white;
+}
+
+.button.primary:hover {
+  background-color: #2b6cb0;
+}
+
+.button.secondary {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.button.secondary:hover {
+  background-color: #cbd5e0;
+}
+
+.info-section {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.info-section h3 {
+  margin-top: 0;
+  color: #2c5282;
+}
+
+.info-section ol {
+  padding-left: 1.5rem;
+}
+
+.info-section li {
+  margin-bottom: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .welcome-card, .info-section {
+    background-color: #2d3748;
+  }
+  
+  .welcome-card h2, .info-section h3 {
+    color: #90cdf4;
+  }
+  
+  .button.secondary {
+    background-color: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .button.secondary:hover {
+    background-color: #718096;
+  }
+}
