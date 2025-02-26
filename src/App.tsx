@@ -19,7 +19,28 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/config" element={<Config />} />
-          <Route path="/prompts" element={<PromptManager onSelectPrompt={() => {}} selectedPromptId="" />} />
+          <Route path="/prompts" element={<PromptManager 
+            onSelectPrompt={(promptId) => {
+              // Get the current config
+              const savedConfig = localStorage.getItem('superego-config');
+              if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                // Update the default constitution
+                config.superEgoConstitutionFile = promptId;
+                // Save the updated config
+                localStorage.setItem('superego-config', JSON.stringify(config));
+              }
+            }} 
+            selectedPromptId={(() => {
+              // Get the current config to determine the selected prompt ID
+              const savedConfig = localStorage.getItem('superego-config');
+              if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                return config.superEgoConstitutionFile || 'default';
+              }
+              return 'default';
+            })()} 
+          />} />
         </Routes>
       </main>
     </div>

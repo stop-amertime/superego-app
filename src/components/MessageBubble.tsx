@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './MessageBubble.css';
+import { Prompt } from '../types/Prompt';
 
 interface Message {
   id: string;
@@ -7,6 +8,7 @@ interface Message {
   content: string;
   timestamp: string;
   decision?: string;
+  constitutionId?: string;
 }
 
 interface MessageBubbleProps {
@@ -14,16 +16,92 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   onRetry?: (messageId: string) => void;
+  onChangePrompt?: (messageId: string, promptId: string) => void;
 }
 
-function MessageBubble({ message, onEdit, onDelete, onRetry }: MessageBubbleProps) {
+function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showActions, setShowActions] = useState(false);
+  const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  
+  // Load constitutions from prompts.json and localStorage on component mount
+  useEffect(() => {
+    if (message.role === 'superego') {
+      const loadConstitutions = async () => {
+        // Load built-in constitutions from prompts.json
+        const builtInConstitutions: Prompt[] = [];
+        
+        try {
+          const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
+          if (response.ok) {
+            const data = await response.json();
+            // Convert the constitutions from the JSON file to Prompt objects
+            data.prompts.forEach((p: any) => {
+              builtInConstitutions.push({
+                id: p.id,
+                name: p.name,
+                content: p.content,
+                isBuiltIn: true,
+                lastUpdated: new Date().toISOString()
+              });
+            });
+          } else {
+            console.error('Failed to load prompts.json file');
+          }
+        } catch (error) {
+          console.error('Error loading prompts.json file:', error);
+        }
+        
+        // Load custom constitutions from localStorage
+        let customConstitutions: Prompt[] = [];
+        const savedConstitutions = localStorage.getItem('superego-constitutions');
+        
+        if (savedConstitutions) {
+          try {
+            customConstitutions = JSON.parse(savedConstitutions);
+          } catch (error) {
+            console.error('Error parsing saved constitutions:', error);
+          }
+        }
+        
+        // Combine built-in constitutions with custom constitutions
+        setPrompts([...builtInConstitutions, ...customConstitutions]);
+      };
+      
+      loadConstitutions();
+    }
+  }, [message.role]);
+  
   // Format timestamp
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Get constitution name from ID
+  const getConstitutionName = (constitutionId: string) => {
+    const prompt = prompts.find(p => p.id === constitutionId);
+    return prompt ? prompt.name : constitutionId;
+  };
+  
+  // Check if this constitution is the default
+  const isDefaultConstitution = () => {
+    const savedConfig = localStorage.getItem('superego-config');
+    if (savedConfig && message.constitutionId) {
+      const config = JSON.parse(savedConfig);
+      return config.superEgoConstitutionFile === message.constitutionId;
+    }
+    return false;
+  };
+
+  // Handle changing the constitution
+  const handleChangePrompt = (promptId: string) => {
+    if (onChangePrompt) {
+      onChangePrompt(message.id, promptId);
+      setIsPromptSelectorOpen(false);
+    }
   };
 
   const handleEdit = () => {
@@ -62,11 +140,70 @@ function MessageBubble({ message, onEdit, onDelete, onRetry }: MessageBubbleProp
       onClick={() => setShowActions(!showActions)}
     >
       <div className="message-header">
-        <span className="message-sender">
-          {message.role === 'user' ? 'You' : 
-           message.role === 'assistant' ? 'Assistant' : 'Superego'}
-        </span>
-        <span className="message-time">{formatTime(message.timestamp)}</span>
+        <div className="message-info">
+          <span className="message-sender">
+            {message.role === 'user' ? 'You' : 
+             message.role === 'assistant' ? 'Assistant' : 'Superego'}
+          </span>
+          <span className="message-time">{formatTime(message.timestamp)}</span>
+        </div>
+        {message.role === 'superego' && message.constitutionId && (
+          <div className="message-constitution">
+            <span 
+              className="constitution-label"
+              onClick={() => setIsPromptSelectorOpen(prev => !prev)}
+            >
+              Constitution: {getConstitutionName(message.constitutionId)} 
+              {isDefaultConstitution() && <span className="default-badge" title="Default constitution">Default</span>}
+              ▾
+            </span>
+            
+            {isPromptSelectorOpen && (
+              <div className="prompt-selector">
+                <div className="prompt-selector-header">
+                  <h4>Select a different constitution</h4>
+                  <button 
+                    className="close-button"
+                    onClick={() => setIsPromptSelectorOpen(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="prompt-list">
+                  {/* Built-in constitutions */}
+                  <div className="prompt-category">
+                    <h5>Built-in Constitutions</h5>
+                    {prompts.filter(p => p.isBuiltIn).map(prompt => (
+                      <div 
+                        key={prompt.id}
+                        className={`prompt-item ${message.constitutionId === prompt.id ? 'active' : ''}`}
+                        onClick={() => handleChangePrompt(prompt.id)}
+                      >
+                        {prompt.name}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Custom constitutions */}
+                  {prompts.filter(p => !p.isBuiltIn).length > 0 && (
+                    <div className="prompt-category">
+                      <h5>Custom Constitutions</h5>
+                      {prompts.filter(p => !p.isBuiltIn).map(prompt => (
+                        <div 
+                          key={prompt.id}
+                          className={`prompt-item ${message.constitutionId === prompt.id ? 'active' : ''}`}
+                          onClick={() => handleChangePrompt(prompt.id)}
+                        >
+                          {prompt.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {isEditing ? (

@@ -82,6 +82,18 @@
   font-weight: 500;
   margin-bottom: 0.25rem;
   color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.default-badge {
+  font-size: 0.7rem;
+  background-color: #4299e1;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-weight: normal;
 }
 
 .prompt-preview {
@@ -97,6 +109,7 @@
   gap: 0.375rem;
   opacity: 0.5;
   transition: opacity 0.2s;
+  flex-wrap: wrap;
 }
 
 .prompt-item:hover .prompt-actions {
@@ -104,11 +117,12 @@
 }
 
 .edit-button,
-.delete-button {
+.delete-button,
+.default-button {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   color: #4a5568;
@@ -122,6 +136,16 @@
 .delete-button:hover {
   background-color: rgba(245, 101, 101, 0.1);
   color: #e53e3e;
+}
+
+.default-button:hover:not(:disabled) {
+  background-color: rgba(66, 153, 225, 0.1);
+  color: #3182ce;
+}
+
+.default-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .prompt-editor {
@@ -258,12 +282,17 @@
     color: #e2e8f0;
   }
   
+  .default-badge {
+    background-color: #3182ce;
+  }
+  
   .prompt-preview {
     color: #a0aec0;
   }
   
   .edit-button,
-  .delete-button {
+  .delete-button,
+  .default-button {
     color: #e2e8f0;
   }
   
@@ -275,6 +304,11 @@
   .delete-button:hover {
     background-color: rgba(252, 129, 129, 0.1);
     color: #fc8181;
+  }
+  
+  .default-button:hover:not(:disabled) {
+    background-color: rgba(144, 205, 244, 0.1);
+    color: #90cdf4;
   }
   
   .prompt-editor h3 {

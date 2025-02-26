@@ -32,8 +32,45 @@
 .message-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.message-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.message-constitution {
+  position: relative;
+  margin-top: 0.25rem;
+}
+
+.constitution-label {
+  font-size: 0.75rem;
+  color: #4a5568;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.default-badge {
+  font-size: 0.6rem;
+  background-color: #4299e1;
+  color: white;
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  margin-left: 0.25rem;
+}
+
+.constitution-label:hover {
+  background-color: #cbd5e0;
 }
 
 .message-sender {

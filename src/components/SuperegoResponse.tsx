@@ -8,6 +8,7 @@ interface Message {
   content: string;
   timestamp: string;
   decision?: string;
+  constitutionId?: string;
 }
 
 interface SuperegoResponseProps {
@@ -28,6 +29,28 @@ function SuperegoResponse({
   const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isChangingPrompt, setIsChangingPrompt] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState(currentPromptId);
+  const [isStreamingComplete, setIsStreamingComplete] = useState(false);
+  
+  // Update selected prompt ID when current prompt ID changes
+  useEffect(() => {
+    setSelectedPromptId(currentPromptId);
+  }, [currentPromptId]);
+  
+  // Determine if streaming is complete based on evaluation content and decision
+  useEffect(() => {
+    // Consider streaming complete if there's a decision or if the content appears complete
+    if (evaluation.decision && evaluation.decision !== 'ANALYZING') {
+      setIsStreamingComplete(true);
+    } else {
+      // If the evaluation content ends with a period, question mark, or exclamation point
+      // followed by optional whitespace, consider it complete
+      const content = evaluation.content;
+      if (content.trim().length > 100 && content.trim().match(/[.!?]\s*$/)) {
+        setIsStreamingComplete(true);
+      }
+    }
+  }, [evaluation.content, evaluation.decision]);
   
   // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
@@ -79,6 +102,8 @@ function SuperegoResponse({
   const handlePromptChange = async (promptId: string) => {
     if (onChangePrompt) {
       setIsChangingPrompt(true);
+      setSelectedPromptId(promptId);
+      setIsStreamingComplete(false);
       try {
         await onChangePrompt(promptId);
       } finally {
@@ -88,9 +113,16 @@ function SuperegoResponse({
     }
   };
   
+  // Update selected prompt ID when evaluation's constitutionId changes
+  useEffect(() => {
+    if (evaluation.constitutionId) {
+      setSelectedPromptId(evaluation.constitutionId);
+    }
+  }, [evaluation.constitutionId]);
+  
   // Get the current prompt name
   const getCurrentPromptName = () => {
-    const prompt = prompts.find(p => p.id === currentPromptId);
+    const prompt = prompts.find(p => p.id === selectedPromptId);
     return prompt ? prompt.name : 'Default';
   };
 
@@ -121,7 +153,7 @@ function SuperegoResponse({
                       {prompts.filter(p => p.isBuiltIn).map(prompt => (
                         <div 
                           key={prompt.id}
-                          className={`prompt-item ${currentPromptId === prompt.id ? 'active' : ''}`}
+                          className={`prompt-item ${selectedPromptId === prompt.id ? 'active' : ''}`}
                           onClick={() => handlePromptChange(prompt.id)}
                         >
                           {prompt.name}
@@ -136,7 +168,7 @@ function SuperegoResponse({
                         {prompts.filter(p => !p.isBuiltIn).map(prompt => (
                           <div 
                             key={prompt.id}
-                            className={`prompt-item ${currentPromptId === prompt.id ? 'active' : ''}`}
+                            className={`prompt-item ${selectedPromptId === prompt.id ? 'active' : ''}`}
                             onClick={() => handlePromptChange(prompt.id)}
                           >
                             {prompt.name}
@@ -159,40 +191,42 @@ function SuperegoResponse({
           ))}
         </div>
       </div>
-      <div className="superego-actions">
-        <p>What would you like to do?</p>
-        <div className="action-buttons">
-          <button 
-            onClick={onSend} 
-            className="button primary"
-            disabled={isChangingPrompt}
-          >
-            Continue and send to the main model
-          </button>
-          <button 
-            onClick={onRetry} 
-            className="button secondary"
-            disabled={isChangingPrompt}
-          >
-            Retry with a different input
-          </button>
-          {onChangePrompt && (
+      {isStreamingComplete && (
+        <div className="superego-actions">
+          <p>What would you like to do?</p>
+          <div className="action-buttons">
             <button 
-              onClick={() => setIsPromptSelectorOpen(prev => !prev)} 
+              onClick={onSend} 
+              className="button primary"
+              disabled={isChangingPrompt}
+            >
+              Continue and send to the main model
+            </button>
+            <button 
+              onClick={onRetry} 
               className="button secondary"
               disabled={isChangingPrompt}
             >
-              {isPromptSelectorOpen ? 'Close constitution selector' : 'Try a different constitution'}
+              Retry with a different input
             </button>
+            {onChangePrompt && (
+              <button 
+                onClick={() => setIsPromptSelectorOpen(prev => !prev)} 
+                className="button secondary"
+                disabled={isChangingPrompt}
+              >
+                {isPromptSelectorOpen ? 'Close constitution selector' : 'Try a different constitution'}
+              </button>
+            )}
+          </div>
+          {isChangingPrompt && (
+            <div className="changing-prompt-indicator">
+              <div className="loading-spinner"></div>
+              <p>Evaluating with new constitution...</p>
+            </div>
           )}
         </div>
-        {isChangingPrompt && (
-          <div className="changing-prompt-indicator">
-            <div className="loading-spinner"></div>
-            <p>Evaluating with new constitution...</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

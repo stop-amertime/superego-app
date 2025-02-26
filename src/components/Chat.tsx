@@ -314,10 +314,14 @@ function Chat() {
   // Evaluate input with superego using specified constitution
   const evaluateWithSuperego = async (inputText: string, constitutionId?: string) => {
     // Use the provided constitutionId or the current config
+    const usedConstitutionId = constitutionId || config.superEgoConstitutionFile;
     const evaluationConfig = {
       ...config,
-      superEgoConstitutionFile: constitutionId || config.superEgoConstitutionFile
+      superEgoConstitutionFile: usedConstitutionId
     };
+    
+    // Always clear the current evaluation when starting a new evaluation
+    setCurrentEvaluation(null);
     
     setSuperEgoLoading(true);
     
@@ -339,7 +343,8 @@ function Chat() {
                 role: 'superego',
                 content,
                 timestamp: new Date().toISOString(),
-                decision: 'ANALYZED'
+                decision: 'ANALYZING', // Set to ANALYZING while streaming
+                constitutionId: usedConstitutionId
               };
             }
             return {
@@ -352,8 +357,12 @@ function Chat() {
       
       console.log('Superego response complete:', superEgoResponse);
       
-      // Set the final evaluation
-      setCurrentEvaluation(superEgoResponse);
+      // Set the final evaluation with the constitution ID and ANALYZED decision
+      setCurrentEvaluation({
+        ...superEgoResponse,
+        constitutionId: usedConstitutionId,
+        decision: 'ANALYZED'
+      });
     } catch (error) {
       console.error('Error evaluating input:', error);
       alert(`An error occurred while evaluating your input: ${error instanceof Error ? error.message : String(error)}`);
@@ -502,6 +511,18 @@ function Chat() {
     evaluateWithSuperego(messageToRetry.content);
   }, [messages]);
   
+  // Handle changing the constitution for a past message
+  const handleChangePastMessagePrompt = useCallback((messageId: string, promptId: string) => {
+    // Update the constitution ID for the message
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, constitutionId: promptId } 
+          : msg
+      )
+    );
+  }, []);
+  
   // Handle clear chat
   const handleClearChat = () => {
     if (window.confirm('Are you sure you want to clear this conversation?')) {
@@ -591,6 +612,7 @@ function Chat() {
               onEdit={handleEditMessage}
               onDelete={handleDeleteMessage}
               onRetry={handleRetryMessage}
+              onChangePrompt={message.role === 'superego' ? handleChangePastMessagePrompt : undefined}
             />
           ))}
           

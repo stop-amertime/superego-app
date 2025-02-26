@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './PromptManager.css';
 import { Prompt } from '../types/Prompt';
+import { Config } from '../api/llmClient';
 
 interface PromptManagerProps {
   onSelectPrompt: (promptId: string) => void;
@@ -14,6 +15,25 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
   const [newConstitutionName, setNewConstitutionName] = useState('');
   const [newConstitutionContent, setNewConstitutionContent] = useState('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [config, setConfig] = useState<Config>({
+    defaultProvider: 'openrouter',
+    openrouterApiKey: '',
+    anthropicApiKey: '',
+    anthropicSuperEgoModel: 'claude-3-7-sonnet-20250219',
+    anthropicBaseModel: 'claude-3-7-sonnet-20250219',
+    openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
+    openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
+    superEgoConstitutionFile: 'default',
+    saveHistory: true
+  });
+
+  // Load config from localStorage
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('superego-config');
+    if (savedConfig) {
+      setConfig(JSON.parse(savedConfig));
+    }
+  }, []);
 
   // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
@@ -74,6 +94,18 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
     onSelectPrompt(promptId);
   };
 
+  // Set a constitution as default
+  const handleSetDefault = (promptId: string) => {
+    const updatedConfig = {
+      ...config,
+      superEgoConstitutionFile: promptId
+    };
+    
+    setConfig(updatedConfig);
+    localStorage.setItem('superego-config', JSON.stringify(updatedConfig));
+    alert(`Constitution "${constitutions.find(p => p.id === promptId)?.name}" set as default.`);
+  };
+
   // Start editing a constitution
   const handleEditPrompt = (prompt: Prompt) => {
     if (prompt.isBuiltIn) {
@@ -123,6 +155,7 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
     setEditingConstitution(null);
     setNewConstitutionName('');
     setNewConstitutionContent('');
+    setIsCreatingNew(false);
   };
 
   // Cancel editing
@@ -145,6 +178,16 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
       // If the deleted constitution was selected, select the default constitution
       if (selectedPromptId === promptId) {
         onSelectPrompt('default');
+      }
+      
+      // If the deleted constitution was the default, reset to 'default'
+      if (config.superEgoConstitutionFile === promptId) {
+        const updatedConfig = {
+          ...config,
+          superEgoConstitutionFile: 'default'
+        };
+        setConfig(updatedConfig);
+        localStorage.setItem('superego-config', JSON.stringify(updatedConfig));
       }
     }
   };
@@ -193,7 +236,12 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                     className="prompt-item-content"
                     onClick={() => handleSelectPrompt(prompt.id)}
                   >
-                    <div className="prompt-name">{prompt.name}</div>
+                    <div className="prompt-name">
+                      {prompt.name}
+                      {config.superEgoConstitutionFile === prompt.id && (
+                        <span className="default-badge" title="Default constitution">Default</span>
+                      )}
+                    </div>
                     <div className="prompt-preview">
                       {prompt.content.substring(0, 60)}...
                     </div>
@@ -205,6 +253,14 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                       title="Create a custom copy of this constitution"
                     >
                       Copy
+                    </button>
+                    <button 
+                      className="default-button"
+                      onClick={() => handleSetDefault(prompt.id)}
+                      title="Set as default constitution"
+                      disabled={config.superEgoConstitutionFile === prompt.id}
+                    >
+                      Set Default
                     </button>
                   </div>
                 </div>
@@ -222,7 +278,12 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                         className="prompt-item-content"
                         onClick={() => handleSelectPrompt(prompt.id)}
                       >
-                        <div className="prompt-name">{prompt.name}</div>
+                        <div className="prompt-name">
+                          {prompt.name}
+                          {config.superEgoConstitutionFile === prompt.id && (
+                            <span className="default-badge" title="Default constitution">Default</span>
+                          )}
+                        </div>
                         <div className="prompt-preview">
                           {prompt.content.substring(0, 60)}...
                         </div>
@@ -241,6 +302,14 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
                           title="Delete this constitution"
                         >
                           Delete
+                        </button>
+                        <button 
+                          className="default-button"
+                          onClick={() => handleSetDefault(prompt.id)}
+                          title="Set as default constitution"
+                          disabled={config.superEgoConstitutionFile === prompt.id}
+                        >
+                          Set Default
                         </button>
                       </div>
                     </div>

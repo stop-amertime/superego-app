@@ -24,6 +24,7 @@ export interface Message {
   content: string;
   timestamp: string;
   decision?: string;
+  constitutionId?: string; // The ID of the constitution used for this message
 }
 
 // Define the streaming callback type
