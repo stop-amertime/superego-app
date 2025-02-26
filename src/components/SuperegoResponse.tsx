@@ -36,7 +36,7 @@ function SuperegoResponse({
       const builtInConstitutions: Prompt[] = [];
       
       try {
-        const response = await fetch('/prompts.json');
+        const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
         if (response.ok) {
           const data = await response.json();
           // Convert the constitutions from the JSON file to Prompt objects

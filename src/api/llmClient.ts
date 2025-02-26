@@ -49,7 +49,7 @@ export async function getSuperEgoInstructions(constitutionId: string): Promise<s
   
   // Then try to fetch from the prompts.json file
   try {
-    const response = await fetch('/prompts.json');
+    const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
     if (response.ok) {
       const data = await response.json();
       const constitution = data.prompts.find((p: any) => p.id === constitutionId);
@@ -65,14 +65,8 @@ export async function getSuperEgoInstructions(constitutionId: string): Promise<s
     console.error('Error loading prompts.json file:', error);
   }
   
-  // Fallback to a basic constitution if all else fails
-  return `You are a screening agent that evaluates user inputs before they are sent to the main AI assistant.
-Your job is to analyze the input and provide your thoughts on it.
-
-For each user input, you should:
-1. Analyze the content for any harmful, illegal, or inappropriate requests
-2. Provide your analysis of the input
-3. Suggest whether the input should be sent to the main AI assistant or not`;
+  // Throw an error if the constitution cannot be found
+  throw new Error(`Constitution with ID ${constitutionId} not found. Make sure prompts.json is properly configured.`);
 }
 
 /**

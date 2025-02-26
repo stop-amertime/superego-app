@@ -199,7 +199,7 @@ function Config() {
                 useEffect(() => {
                   const fetchConstitutions = async () => {
                     try {
-                      const response = await fetch('/prompts.json');
+                      const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
                       if (response.ok) {
                         const data = await response.json();
                         const constitutions = data.prompts.map((p: any) => ({
@@ -210,6 +210,8 @@ function Config() {
                           lastUpdated: new Date().toISOString()
                         }));
                         setBuiltInConstitutions(constitutions);
+                      } else {
+                        console.error('Failed to load prompts.json file');
                       }
                     } catch (error) {
                       console.error('Error loading constitutions:', error);
