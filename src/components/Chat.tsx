@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './Chat.css';
 import MessageBubble from './MessageBubble';
@@ -447,10 +447,60 @@ function Chat() {
     }
   };
   
-  // Handle retry
+  // Handle retry for superego evaluation
   const handleRetry = () => {
     setCurrentEvaluation(null);
   };
+  
+  // Handle edit message
+  const handleEditMessage = useCallback((messageId: string, newContent: string) => {
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content: newContent, timestamp: new Date().toISOString() } 
+          : msg
+      )
+    );
+  }, []);
+  
+  // Handle delete message
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    // Find the message to delete
+    const messageToDelete = messages.find(msg => msg.id === messageId);
+    if (!messageToDelete) return;
+    
+    // Find all messages after this one that should be removed
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+    
+    // Remove this message and all subsequent messages
+    const updatedMessages = messages.slice(0, messageIndex);
+    setMessages(updatedMessages);
+    
+    // Clear current evaluation if any
+    setCurrentEvaluation(null);
+  }, [messages]);
+  
+  // Handle retry message (rerun from this point)
+  const handleRetryMessage = useCallback((messageId: string) => {
+    // Find the message to retry
+    const messageToRetry = messages.find(msg => msg.id === messageId);
+    if (!messageToRetry || messageToRetry.role !== 'user') return;
+    
+    // Find all messages after this one that should be removed
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+    
+    // Keep only messages up to and including the retried message
+    const updatedMessages = messages.slice(0, messageIndex + 1);
+    setMessages(updatedMessages);
+    
+    // Clear current evaluation if any
+    setCurrentEvaluation(null);
+    
+    // Re-evaluate with superego
+    evaluateWithSuperego(messageToRetry.content);
+  }, [messages]);
   
   // Handle clear chat
   const handleClearChat = () => {
@@ -535,7 +585,13 @@ function Chat() {
         
         <div className="messages-container">
           {messages.map(message => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble 
+              key={message.id} 
+              message={message} 
+              onEdit={handleEditMessage}
+              onDelete={handleDeleteMessage}
+              onRetry={handleRetryMessage}
+            />
           ))}
           
           {isSuperEgoLoading && (
