@@ -119,6 +119,55 @@
   word-break: break-word;
 }
 
+/* Streaming indicator */
+.streaming-indicator {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Thinking section styles */
+.superego-thinking-box {
+  margin-bottom: 15px;
+  background-color: #f0f9ff;
+  border: 1px solid #bde0fe;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.thinking-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #3b82f6;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.thinking-icon {
+  margin-right: 5px;
+}
+
+.thinking-content {
+  margin-top: 8px;
+  padding: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  color: #374151;
+  line-height: 1.5;
+}
+
 .superego-actions {
   background-color: #fefcbf;
   padding: 1rem;
@@ -205,6 +254,23 @@
   .superego-response {
     background-color: #744210;
     border-left-color: #ecc94b;
+  }
+  
+  /* Dark mode styles for thinking section */
+  .superego-thinking-box {
+    background-color: #1e3a8a;
+    border-color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  
+  .thinking-header {
+    color: #93c5fd;
+  }
+  
+  .thinking-content {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
   }
   
   .superego-header h3 {

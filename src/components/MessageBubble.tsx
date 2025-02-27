@@ -9,6 +9,8 @@ interface Message {
   timestamp: string;
   decision?: string;
   constitutionId?: string;
+  thinking?: string; // The thinking content from Claude's extended thinking feature
+  thinkingTime?: string | null; // How long the thinking process took in seconds
 }
 
 interface MessageBubbleProps {
@@ -25,6 +27,7 @@ function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: M
   const [showActions, setShowActions] = useState(false);
   const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   
   // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
@@ -205,6 +208,32 @@ function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: M
           </div>
         )}
       </div>
+      
+      {/* Add thinking section above the response for superego messages */}
+      {message.role === 'superego' && message.thinking && message.thinking.length > 0 && (
+        <div className="superego-thinking-box">
+          <div 
+            className="thinking-header" 
+            onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
+          >
+            <span className="thinking-icon">{isThinkingExpanded ? '▼' : '►'}</span>
+            <span className="thinking-label">
+              Thinking tokens: {message.thinkingTime || '0'}
+            </span>
+          </div>
+          
+          {isThinkingExpanded && (
+            <div className="thinking-content">
+              {message.thinking?.split('\n').map((line, i, arr) => (
+                <React.Fragment key={i}>
+                  {line}
+                  {i < arr.length - 1 && <br />}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       
       {isEditing ? (
         <div className="message-edit">

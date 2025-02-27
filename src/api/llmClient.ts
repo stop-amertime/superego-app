@@ -14,6 +14,7 @@ export interface Config {
   openrouterSuperEgoModel: string;
   openrouterBaseModel: string;
   superEgoConstitutionFile: string;
+  superEgoThinkingBudget: number; // New property for thinking token budget
   saveHistory: boolean;
 }
 
@@ -25,6 +26,8 @@ export interface Message {
   timestamp: string;
   decision?: string;
   constitutionId?: string; // The ID of the constitution used for this message
+  thinking?: string; // The thinking content from Claude's extended thinking feature
+  thinkingTime?: string | null; // How long the thinking process took in seconds
 }
 
 // Define the streaming callback type
@@ -103,7 +106,8 @@ function initClients(config: Config) {
 export async function streamSuperEgoResponse(
   userInput: string,
   config: Config,
-  onContent: OnContentCallback
+  onContent: OnContentCallback,
+  onThinking?: OnContentCallback // Optional callback for thinking content
 ): Promise<Message> {
   // Get the provider-specific model name for superego
   const provider = config.defaultProvider;
@@ -116,9 +120,18 @@ export async function streamSuperEgoResponse(
   
   // Get instructions from the configured constitution file
   const systemPrompt = await getSuperEgoInstructions(config.superEgoConstitutionFile);
-  const userMessage = `Evaluate this user input: ${userInput}`;
+  // Check if this is the special test string for redacted thinking
+  const isRedactedThinkingTest = userInput.includes('ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB');
+  
+  // If it's the test string, use it directly; otherwise, prepend with the evaluation instruction
+  const userMessage = isRedactedThinkingTest 
+    ? userInput 
+    : `Evaluate this user input: ${userInput}`;
   
   let fullResponse = '';
+  let internalThinking = ''; // Store the thinking content
+  let thinkingStartTime: number | null = null;
+  let thinkingEndTime: number | null = null;
   
   try {
     if (provider === 'anthropic' && anthropicClient) {
@@ -127,20 +140,64 @@ export async function streamSuperEgoResponse(
       console.log('User message:', userMessage);
       
       try {
-        console.log('Initializing Anthropic stream...');
+        console.log('Initializing Anthropic stream with thinking enabled...');
+        thinkingStartTime = Date.now(); // Record when thinking starts
+        
+        // Calculate max_tokens based on thinking budget
+        // max_tokens must be higher than thinking budget
+        const thinkingBudget = config.superEgoThinkingBudget || 4000;
+        const maxTokens = Math.max(1000, thinkingBudget + 1000); // Ensure max_tokens is at least 1000 more than thinking budget
+        
+        console.log(`Using thinking budget: ${thinkingBudget}, max_tokens: ${maxTokens}`);
+        
         const stream = await anthropicClient.messages.stream({
           model: model,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],
-          max_tokens: 1000,
+          max_tokens: maxTokens,
+          thinking: {
+            type: "enabled",
+            budget_tokens: thinkingBudget
+          }
         });
         console.log('Anthropic stream initialized successfully');
         
         for await (const chunk of stream) {
           // Handle different types of chunks from Anthropic API
           if (chunk.type === 'content_block_delta' && chunk.delta) {
-            // Check if it's a text delta
-            if ('text' in chunk.delta) {
+            // Handle thinking content
+            // The property might be 'thinking_delta', 'thinking', or 'redacted_thinking' depending on the API version
+            if ('thinking_delta' in chunk.delta) {
+              internalThinking += chunk.delta.thinking_delta;
+              console.log('Received thinking_delta chunk:', chunk.delta.thinking_delta);
+              // Call the onThinking callback if provided
+              if (onThinking && typeof chunk.delta.thinking_delta === 'string') {
+                onThinking(chunk.delta.thinking_delta);
+              }
+            } else if ('thinking' in chunk.delta) {
+              internalThinking += chunk.delta.thinking;
+              console.log('Received thinking chunk:', chunk.delta.thinking);
+              // Call the onThinking callback if provided
+              if (onThinking && typeof chunk.delta.thinking === 'string') {
+                onThinking(chunk.delta.thinking);
+              }
+            } else if ('redacted_thinking' in chunk.delta) {
+              // Handle redacted thinking - this is encrypted content
+              console.log('Received redacted_thinking chunk:', chunk.delta.redacted_thinking);
+              // Include the encrypted content directly - it will be passed back to the API in future requests
+              const redactedContent = `[REDACTED THINKING (encrypted): ${chunk.delta.redacted_thinking}]`;
+              internalThinking += redactedContent;
+              // Call the onThinking callback if provided
+              if (onThinking) {
+                onThinking(redactedContent);
+              }
+            } else if ('text' in chunk.delta) {
+              // If this is the first text chunk, record when thinking ends
+              if (fullResponse === '' && thinkingEndTime === null) {
+                thinkingEndTime = Date.now();
+              }
+              
+              // This is the final decision to show to the user
               const content = chunk.delta.text;
               fullResponse += content;
               onContent(content);
@@ -259,13 +316,18 @@ Try:
     };
   }
   
-  // Return the full response
+  // Calculate approximate token count (rough estimate: ~4 chars per token)
+  const thinkingTokenCount = Math.round(internalThinking.length / 4);
+  
+  // Return the full response with thinking data
   return {
     id: Date.now().toString(),
     role: 'superego',
     content: fullResponse,
     timestamp: new Date().toISOString(),
-    decision: 'ANALYZED'
+    decision: 'ANALYZED',
+    thinking: internalThinking, // Store the thinking content
+    thinkingTime: thinkingTokenCount.toString() // Store thinking token count as a string
   };
 }
 
@@ -287,17 +349,49 @@ export async function streamBaseLLMResponse(
   console.log('Using provider for base LLM:', provider);
   console.log('Using model for base LLM:', model);
   console.log('Conversation context length:', conversationContext.length);
+  console.log('Conversation context:', JSON.stringify(conversationContext, null, 2));
   
   // Initialize clients
   const { anthropicClient, openrouterClient } = initClients(config);
   
   // Prepare messages with conversation context
-  const messages = conversationContext
-    .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-    .map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
+  // We'll create a new array to hold the processed messages
+  const processedMessages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = [];
+  
+  // First, let's process all messages in the conversation context
+  for (let i = 0; i < conversationContext.length; i++) {
+    const msg = conversationContext[i];
+    
+    if (msg.role === 'user') {
+      // Include user messages as-is
+      processedMessages.push({
+        role: 'user',
+        content: msg.content
+      });
+    } else if (msg.role === 'assistant') {
+      // Include assistant messages as-is
+      processedMessages.push({
+        role: 'assistant',
+        content: msg.content
+      });
+    } else if (msg.role === 'superego') {
+      // Include superego messages as system messages
+      processedMessages.push({
+        role: 'system',
+        content: `[SUPEREGO EVALUATION]: ${msg.content}`
+      });
+      
+      // If this superego message has thinking content, include it as well
+      if (msg.thinking && msg.thinking.length > 0) {
+        processedMessages.push({
+          role: 'system',
+          content: `[SUPEREGO THINKING]: ${msg.thinking}`
+        });
+      }
+    }
+  }
+  
+  const messages = processedMessages;
   
   // Add the current user input if it's not already in the context
   // Check if the last message is from the user and has the same content
@@ -310,6 +404,7 @@ export async function streamBaseLLMResponse(
   }
   
   console.log('Final messages array length:', messages.length);
+  console.log('Processed messages:', JSON.stringify(messages, null, 2));
   
   let fullResponse = '';
   
@@ -336,8 +431,20 @@ export async function streamBaseLLMResponse(
           // Process the messages
           for (let i = 0; i < messages.length; i++) {
             const msg = messages[i];
-            // Skip system messages as Anthropic handles them separately
-            if (msg.role === 'user' || msg.role === 'assistant') {
+            
+            if (msg.role === 'system') {
+              // For system messages, add them to the previous user message or create a new user message
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === 'user') {
+                // Add to previous user message
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
+              } else {
+                // Create a new user message
+                anthropicMessages.push({
+                  role: 'user',
+                  content: msg.content
+                });
+              }
+            } else if (msg.role === 'user' || msg.role === 'assistant') {
               // If we have two consecutive messages with the same role, we need to combine them
               if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === msg.role) {
                 anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
@@ -363,11 +470,18 @@ export async function streamBaseLLMResponse(
         }
         
         console.log('Anthropic messages prepared:', anthropicMessages.length);
+        console.log('Anthropic messages:', JSON.stringify(anthropicMessages, null, 2));
+        
+        // Add system prompt about superego
+        const systemPrompt = `You are equipped with a superego agent that screens user requests for potential harm before they reach you. You may see outputs from this superego agent in the chat alongside user messages. The superego evaluates each user message and decides whether to allow it to proceed to you. 
+
+When you see messages from the superego, they represent this screening process and are not part of the user's direct communication with you. You should not respond to or mention these superego messages in your replies. Simply take them into consideration when formulating your responses to the user.`;
         
         // Initialize the stream
         console.log('Initializing Anthropic stream for base LLM...');
         const stream = await anthropicClient.messages.stream({
           model: model,
+          system: systemPrompt,
           messages: anthropicMessages,
           max_tokens: 4000,
         });
@@ -396,25 +510,43 @@ export async function streamBaseLLMResponse(
       
       try {
         // Convert messages to OpenAI format
-        const openaiMessages = messages.map(msg => {
-          // Ensure role is one of the valid OpenAI roles
-          let role: 'system' | 'user' | 'assistant';
+        const openaiMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
+        
+        // Process the messages
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i];
+          // Map roles to OpenAI format
           if (msg.role === 'user') {
-            role = 'user';
+            openaiMessages.push({
+              role: 'user',
+              content: msg.content
+            });
           } else if (msg.role === 'assistant') {
-            role = 'assistant';
-          } else {
-            // Default to user for any other role
-            role = 'user';
+            openaiMessages.push({
+              role: 'assistant',
+              content: msg.content
+            });
+          } else if (msg.role === 'system') {
+            openaiMessages.push({
+              role: 'system',
+              content: msg.content
+            });
           }
-          
-          return {
-            role,
-            content: msg.content
-          };
-        });
+        }
         
         console.log('OpenRouter messages prepared:', openaiMessages.length);
+        console.log('OpenRouter messages:', JSON.stringify(openaiMessages, null, 2));
+        
+        // Add system prompt about superego
+        const systemPrompt = `You are equipped with a superego agent that screens user requests for potential harm before they reach you. You may see outputs from this superego agent in the chat alongside user messages. The superego evaluates each user message and decides whether to allow it to proceed to you. 
+
+When you see messages from the superego, they represent this screening process and are not part of the user's direct communication with you. You should not respond to or mention these superego messages in your replies. Simply take them into consideration when formulating your responses to the user.`;
+        
+        // Add system message to the beginning of the messages array
+        openaiMessages.unshift({
+          role: 'system',
+          content: systemPrompt
+        });
         
         // Initialize the stream
         console.log('Initializing OpenRouter stream for base LLM...');

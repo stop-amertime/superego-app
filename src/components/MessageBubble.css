@@ -89,6 +89,43 @@
   line-height: 1.5;
 }
 
+/* Thinking section styles */
+.superego-thinking-box {
+  margin-bottom: 15px;
+  background-color: #f0f9ff;
+  border: 1px solid #bde0fe;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.thinking-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #3b82f6;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.thinking-icon {
+  margin-right: 5px;
+}
+
+.thinking-content {
+  margin-top: 8px;
+  padding: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  color: #374151;
+  line-height: 1.5;
+}
+
 .message-actions {
   position: absolute;
   top: 0.5rem;
@@ -170,6 +207,23 @@
   .message-bubble.superego {
     background-color: #744210;
     color: #fefcbf;
+  }
+  
+  /* Dark mode styles for thinking section */
+  .superego-thinking-box {
+    background-color: #1e3a8a;
+    border-color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  
+  .thinking-header {
+    color: #93c5fd;
+  }
+  
+  .thinking-content {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
   }
   
   .message-time {

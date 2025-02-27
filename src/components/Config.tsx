@@ -16,6 +16,7 @@ function Config() {
     openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
     superEgoConstitutionFile: 'default',
+    superEgoThinkingBudget: 4000, // Default to 4K tokens
     saveHistory: true
   });
   
@@ -254,6 +255,26 @@ function Config() {
         
         <div className="config-section">
           <h3>Other Settings</h3>
+          <div className="form-group">
+            <label htmlFor="superEgoThinkingBudget">Superego Thinking Budget (tokens):</label>
+            <input 
+              type="number" 
+              id="superEgoThinkingBudget" 
+              name="superEgoThinkingBudget" 
+              value={config.superEgoThinkingBudget}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                if (!isNaN(value) && value >= 1024) {
+                  setConfig(prev => ({ ...prev, superEgoThinkingBudget: value }));
+                  setIsDirty(true);
+                }
+              }}
+              min="1024"
+              step="1000"
+            />
+            <p className="help-text">Minimum: 1,024 tokens. Recommended: 4,000 - 16,000 tokens.</p>
+          </div>
+          
           <div className="form-group checkbox">
             <label htmlFor="saveHistory">
               <input 

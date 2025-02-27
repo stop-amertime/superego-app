@@ -43,6 +43,7 @@ function Chat() {
     openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
     superEgoConstitutionFile: 'default',
+    superEgoThinkingBudget: 4000, // Default to 4K tokens
     saveHistory: true
   });
   
@@ -344,12 +345,32 @@ function Chat() {
                 content,
                 timestamp: new Date().toISOString(),
                 decision: 'ANALYZING', // Set to ANALYZING while streaming
-                constitutionId: usedConstitutionId
+                constitutionId: usedConstitutionId,
+                thinking: '', // Initialize thinking as empty string
+                thinkingTime: '0' // Initialize thinking time as 0
               };
             }
             return {
               ...prev,
               content: prev.content + content
+            };
+          });
+        },
+        // Add callback for thinking content
+        (thinkingContent) => {
+          console.log('Received thinking chunk:', thinkingContent);
+          // Update the current evaluation with thinking content as it streams in
+          setCurrentEvaluation(prev => {
+            if (!prev) return null;
+            
+            // Calculate approximate token count
+            const newThinking = prev.thinking ? prev.thinking + thinkingContent : thinkingContent;
+            const thinkingTokenCount = Math.round(newThinking.length / 4);
+            
+            return {
+              ...prev,
+              thinking: newThinking,
+              thinkingTime: thinkingTokenCount.toString()
             };
           });
         }
@@ -358,11 +379,14 @@ function Chat() {
       console.log('Superego response complete:', superEgoResponse);
       
       // Set the final evaluation with the constitution ID and ANALYZED decision
+      // Make sure to preserve thinking and thinkingTime properties
       setCurrentEvaluation({
         ...superEgoResponse,
         constitutionId: usedConstitutionId,
         decision: 'ANALYZED'
       });
+      
+      console.log('Superego response with thinking:', superEgoResponse);
     } catch (error) {
       console.error('Error evaluating input:', error);
       alert(`An error occurred while evaluating your input: ${error instanceof Error ? error.message : String(error)}`);
@@ -405,8 +429,8 @@ function Chat() {
     setAssistantLoading(true);
     
     try {
-      // Get conversation context
-      const context = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+      // Get conversation context - include all messages and the current evaluation
+      const context = [...messages, currentEvaluation];
       
       // Find the last user message
       let lastUserMessage = null;

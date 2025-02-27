@@ -24,6 +24,7 @@ function PromptManager({ onSelectPrompt, selectedPromptId }: PromptManagerProps)
     openrouterSuperEgoModel: 'anthropic/claude-3.7-sonnet',
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
     superEgoConstitutionFile: 'default',
+    superEgoThinkingBudget: 4000, // Default to 4K tokens
     saveHistory: true
   });
 

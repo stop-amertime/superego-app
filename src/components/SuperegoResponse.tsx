@@ -9,6 +9,8 @@ interface Message {
   timestamp: string;
   decision?: string;
   constitutionId?: string;
+  thinking?: string; // The thinking content from Claude's extended thinking feature
+  thinkingTime?: string | null; // How long the thinking process took in seconds
 }
 
 interface SuperegoResponseProps {
@@ -31,6 +33,7 @@ function SuperegoResponse({
   const [isChangingPrompt, setIsChangingPrompt] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState(currentPromptId);
   const [isStreamingComplete, setIsStreamingComplete] = useState(false);
+  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   
   // Update selected prompt ID when current prompt ID changes
   useEffect(() => {
@@ -51,6 +54,13 @@ function SuperegoResponse({
       }
     }
   }, [evaluation.content, evaluation.decision]);
+  
+  // Auto-expand thinking section while streaming
+  useEffect(() => {
+    if (!isStreamingComplete) {
+      setIsThinkingExpanded(true);
+    }
+  }, [isStreamingComplete]);
   
   // Load constitutions from prompts.json and localStorage on component mount
   useEffect(() => {
@@ -182,6 +192,33 @@ function SuperegoResponse({
             </div>
           )}
         </div>
+        {/* Add thinking section above the response - always show while streaming */}
+        {evaluation.thinking && evaluation.thinking.length > 0 && (
+          <div className="superego-thinking-box">
+            <div 
+              className="thinking-header" 
+              onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
+            >
+              <span className="thinking-icon">{isThinkingExpanded ? '▼' : '►'}</span>
+              <span className="thinking-label">
+                Thinking tokens: {evaluation.thinkingTime || '0'}
+              </span>
+            </div>
+            
+            {/* Always show thinking content while streaming, otherwise respect the expanded state */}
+            {(isThinkingExpanded || !isStreamingComplete) && evaluation.thinking && (
+              <div className="thinking-content">
+                {evaluation.thinking?.split('\n').map((line, i, arr) => (
+                  <React.Fragment key={i}>
+                    {line}
+                    {i < arr.length - 1 && <br />}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="superego-message">
           {evaluation.content.split('\n').map((line, i) => (
             <React.Fragment key={i}>
@@ -189,9 +226,12 @@ function SuperegoResponse({
               {i < evaluation.content.split('\n').length - 1 && <br />}
             </React.Fragment>
           ))}
+          {!isStreamingComplete && (
+            <span className="streaming-indicator">▌</span>
+          )}
         </div>
       </div>
-      {isStreamingComplete && (
+      {isStreamingComplete ? (
         <div className="superego-actions">
           <p>What would you like to do?</p>
           <div className="action-buttons">
@@ -226,7 +266,7 @@ function SuperegoResponse({
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
