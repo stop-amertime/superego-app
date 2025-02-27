@@ -184,10 +184,82 @@ export async function streamSuperEgoResponse(
         
         console.log(`Using thinking budget: ${thinkingBudget}, max_tokens: ${maxTokens}`);
         
+        // Prepare messages with conversation context if provided
+        const anthropicMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
+        
+        if (limitedContext && limitedContext.length > 0) {
+          console.log('Using conversation context for superego evaluation');
+          
+          // Anthropic requires alternating user/assistant messages starting with a user message
+          // Ensure the first message is from a user
+          if (limitedContext[0].role !== 'user') {
+            anthropicMessages.push({
+              role: 'user',
+              content: 'Hello'
+            });
+          }
+          
+          // Process the messages
+          for (let i = 0; i < limitedContext.length; i++) {
+            const msg = limitedContext[i];
+            
+            if (msg.role === 'user') {
+              // If we have two consecutive user messages, we need to combine them
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === 'user') {
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
+              } else {
+                anthropicMessages.push({
+                  role: 'user',
+                  content: msg.content
+                });
+              }
+            } else if (msg.role === 'assistant') {
+              // If we have two consecutive assistant messages, we need to combine them
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === 'assistant') {
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
+              } else {
+                anthropicMessages.push({
+                  role: 'assistant',
+                  content: msg.content
+                });
+              }
+            } else if (msg.role === 'superego') {
+              // For superego messages, add them to the previous user message or create a new user message
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === 'user') {
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n[SUPEREGO EVALUATION]: ' + msg.content;
+              } else {
+                anthropicMessages.push({
+                  role: 'user',
+                  content: '[SUPEREGO EVALUATION]: ' + msg.content
+                });
+              }
+            }
+          }
+          
+          // Add the current user message if it's not already in the context
+          if (anthropicMessages.length === 0 || anthropicMessages[anthropicMessages.length - 1].role !== 'user') {
+            anthropicMessages.push({
+              role: 'user',
+              content: userMessage
+            });
+          } else {
+            // Append to the last user message
+            anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + userMessage;
+          }
+        } else {
+          // If no context is provided, just use the user message
+          anthropicMessages.push({
+            role: 'user',
+            content: userMessage
+          });
+        }
+        
+        console.log('Anthropic messages for superego:', JSON.stringify(anthropicMessages, null, 2));
+        
         const stream = await anthropicClient.messages.stream({
           model: model,
           system: systemPrompt,
-          messages: [{ role: 'user', content: userMessage }],
+          messages: anthropicMessages,
           max_tokens: maxTokens,
           thinking: {
             type: "enabled",
@@ -253,12 +325,50 @@ export async function streamSuperEgoResponse(
       
       try {
         console.log('Initializing OpenRouter stream...');
+        // Prepare messages with conversation context if provided
+        const openaiMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
+        
+        // Add system message first
+        openaiMessages.push({ role: 'system', content: systemPrompt });
+        
+        if (limitedContext && limitedContext.length > 0) {
+          console.log('Using conversation context for superego evaluation with OpenRouter');
+          
+          // Process the messages
+          for (let i = 0; i < limitedContext.length; i++) {
+            const msg = limitedContext[i];
+            
+            if (msg.role === 'user') {
+              openaiMessages.push({
+                role: 'user',
+                content: msg.content
+              });
+            } else if (msg.role === 'assistant') {
+              openaiMessages.push({
+                role: 'assistant',
+                content: msg.content
+              });
+            } else if (msg.role === 'superego') {
+              // Include superego messages as system messages
+              openaiMessages.push({
+                role: 'system',
+                content: `[SUPEREGO EVALUATION]: ${msg.content}`
+              });
+            }
+          }
+        }
+        
+        // Add the current user message
+        openaiMessages.push({
+          role: 'user',
+          content: userMessage
+        });
+        
+        console.log('OpenRouter messages for superego:', JSON.stringify(openaiMessages, null, 2));
+        
         const stream = await openrouterClient.chat.completions.create({
           model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
+          messages: openaiMessages,
           stream: true,
         });
         console.log('OpenRouter stream initialized successfully');

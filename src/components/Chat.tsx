@@ -334,7 +334,7 @@ function Chat() {
       console.log('Calling superego API with input:', inputText);
       console.log('Using constitution:', evaluationConfig.superEgoConstitutionFile);
       
-      // Stream the superego response
+      // Stream the superego response with conversation context
       const superEgoResponse = await streamSuperEgoResponse(
         inputText,
         evaluationConfig,
@@ -377,7 +377,9 @@ function Chat() {
               thinkingTime: thinkingTokenCount.toString()
             };
           });
-        }
+        },
+        // Pass the conversation context to the superego
+        messages
       );
       
       console.log('Superego response complete:', superEgoResponse);
