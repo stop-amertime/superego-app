@@ -130,6 +130,25 @@ function initClients(config: Config) {
 }
 
 /**
+ * Get the reminder message from the injected-reminder.json file
+ */
+export async function getReminderMessage(): Promise<string> {
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}injected-reminder.json`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.reminder || '';
+    } else {
+      console.error('Failed to load injected-reminder.json file');
+      return '';
+    }
+  } catch (error) {
+    console.error('Error loading injected-reminder.json file:', error);
+    return '';
+  }
+}
+
+/**
  * Stream a response from the superego model
  */
 export async function streamSuperEgoResponse(
@@ -157,13 +176,23 @@ export async function streamSuperEgoResponse(
   
   // Get instructions from the configured constitution file
   const systemPrompt = await getConstitution(config.superEgoConstitutionFile);
+  
+  // Get the reminder message (will be appended to the user message later)
+  const reminderMessage = await getReminderMessage();
+  
   // Check if this is the special test string for redacted thinking
   const isRedactedThinkingTest = userInput.includes('ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB');
   
   // If it's the test string, use it directly; otherwise, prepend with the evaluation instruction
-  const userMessage = isRedactedThinkingTest 
+  // and append the reminder message if available
+  let userMessage = isRedactedThinkingTest 
     ? userInput 
     : `Evaluate this user input: ${userInput}`;
+  
+  // Append the reminder message to the user message if available
+  if (reminderMessage) {
+    userMessage = `${userMessage}\n\n[SUPEREGO REMINDER: ${reminderMessage}]`;
+  }
   
   let fullResponse = '';
   let internalThinking = ''; // Store the thinking content
@@ -515,10 +544,22 @@ export async function streamBaseLLMResponseWithoutSuperego(
     const msg = limitedContext[i];
     
     if (msg.role === 'user') {
-      // Include user messages as-is
+      // Include user messages as-is, but remove any superego-related text
+      let cleanContent = msg.content;
+      
+      // Remove any [SUPEREGO REMINDER: ...] text
+      cleanContent = cleanContent.replace(/\n\n\[SUPEREGO REMINDER: .*?\]/g, '');
+      
+      // Remove any [SUPEREGO EVALUATION]: ... text (at the beginning or in the middle)
+      cleanContent = cleanContent.replace(/^\[SUPEREGO EVALUATION\]: .*?(\n|$)/g, '$1');
+      cleanContent = cleanContent.replace(/\n\n\[SUPEREGO EVALUATION\]: .*?(\n|$)/g, '$1');
+      
+      // Remove any other superego-related text patterns
+      cleanContent = cleanContent.replace(/Evaluate this user input: /g, '');
+      
       filteredMessages.push({
         role: 'user',
-        content: msg.content
+        content: cleanContent
       });
     } else if (msg.role === 'assistant') {
       // Include assistant messages as-is
@@ -597,8 +638,8 @@ export async function streamBaseLLMResponseWithoutSuperego(
           });
         }
         
-        // Get the assistant system prompt from the prompts.json file
-        const systemPrompt = await getAssistantPrompt("assistant_default");
+        // Use a clean system prompt that doesn't mention the superego
+        const systemPrompt = "You are Claude, a helpful AI assistant. Respond to the user's questions and requests in a helpful, harmless, and honest way.";
         
         // Make the API call without streaming
         const response = await anthropicClient.messages.create({
@@ -650,10 +691,10 @@ export async function streamBaseLLMResponseWithoutSuperego(
         // Get the assistant system prompt from the prompts.json file
         const systemPrompt = await getAssistantPrompt("assistant_default");
         
-        // Add system message to the beginning of the messages array
+        // Add a clean system prompt that doesn't mention the superego
         openaiMessages.unshift({
           role: 'system',
-          content: systemPrompt
+          content: "You are Claude, a helpful AI assistant. Respond to the user's questions and requests in a helpful, harmless, and honest way."
         });
         
         // Make the API call without streaming
