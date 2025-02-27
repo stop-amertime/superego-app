@@ -130,8 +130,6 @@ export async function streamSuperEgoResponse(
   
   let fullResponse = '';
   let internalThinking = ''; // Store the thinking content
-  let thinkingStartTime: number | null = null;
-  let thinkingEndTime: number | null = null;
   
   try {
     if (provider === 'anthropic' && anthropicClient) {
@@ -141,7 +139,6 @@ export async function streamSuperEgoResponse(
       
       try {
         console.log('Initializing Anthropic stream with thinking enabled...');
-        thinkingStartTime = Date.now(); // Record when thinking starts
         
         // Calculate max_tokens based on thinking budget
         // max_tokens must be higher than thinking budget
@@ -192,11 +189,6 @@ export async function streamSuperEgoResponse(
                 onThinking(redactedContent);
               }
             } else if ('text' in chunk.delta) {
-              // If this is the first text chunk, record when thinking ends
-              if (fullResponse === '' && thinkingEndTime === null) {
-                thinkingEndTime = Date.now();
-              }
-              
               // This is the final decision to show to the user
               const content = chunk.delta.text;
               fullResponse += content;
