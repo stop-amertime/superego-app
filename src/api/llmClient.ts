@@ -14,7 +14,8 @@ export interface Config {
   openrouterSuperEgoModel: string;
   openrouterBaseModel: string;
   superEgoConstitutionFile: string;
-  superEgoThinkingBudget: number; // New property for thinking token budget
+  superEgoThinkingBudget: number; // Property for thinking token budget
+  contextMessageLimit: number | null; // Property for limiting the number of messages in context (null means unlimited)
   saveHistory: boolean;
 }
 
@@ -135,7 +136,8 @@ export async function streamSuperEgoResponse(
   userInput: string,
   config: Config,
   onContent: OnContentCallback,
-  onThinking?: OnContentCallback // Optional callback for thinking content
+  onThinking?: OnContentCallback, // Optional callback for thinking content
+  conversationContext?: Message[] // Optional conversation context
 ): Promise<Message> {
   // Get the provider-specific model name for superego
   const provider = config.defaultProvider;
@@ -145,6 +147,13 @@ export async function streamSuperEgoResponse(
   
   // Initialize clients
   const { anthropicClient, openrouterClient } = initClients(config);
+  
+  // Apply message limit to conversation context if provided
+  let limitedContext: Message[] | undefined = undefined;
+  if (conversationContext) {
+    limitedContext = applyMessageLimit(conversationContext, config.contextMessageLimit);
+    console.log(`Superego message limit applied: ${limitedContext.length}/${conversationContext.length} messages included`);
+  }
   
   // Get instructions from the configured constitution file
   const systemPrompt = await getConstitution(config.superEgoConstitutionFile);
@@ -352,6 +361,18 @@ Try:
 }
 
 /**
+ * Apply message limit to conversation context
+ */
+function applyMessageLimit(messages: Message[], limit: number | null): Message[] {
+  if (limit === null || limit <= 0 || messages.length <= limit) {
+    return messages; // Return all messages if no limit or limit is not exceeded
+  }
+  
+  // Return the most recent 'limit' messages
+  return messages.slice(-limit);
+}
+
+/**
  * Stream a response from the base LLM model without superego context
  * This is used for comparison purposes
  */
@@ -372,12 +393,16 @@ export async function streamBaseLLMResponseWithoutSuperego(
   // Initialize clients
   const { anthropicClient, openrouterClient } = initClients(config);
   
+  // Apply message limit if configured
+  const limitedContext = applyMessageLimit(conversationContext, config.contextMessageLimit);
+  console.log(`Message limit applied: ${limitedContext.length}/${conversationContext.length} messages included`);
+  
   // Prepare messages without superego context
   const filteredMessages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = [];
   
   // Filter out superego messages from the conversation context
-  for (let i = 0; i < conversationContext.length; i++) {
-    const msg = conversationContext[i];
+  for (let i = 0; i < limitedContext.length; i++) {
+    const msg = limitedContext[i];
     
     if (msg.role === 'user') {
       // Include user messages as-is
@@ -488,7 +513,6 @@ export async function streamBaseLLMResponseWithoutSuperego(
       console.log('Using OpenRouter API for base LLM (without superego)');
       
       try {
-        // Convert messages to OpenAI format
         const openaiMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
         
         // Process the messages
@@ -564,18 +588,22 @@ export async function streamBaseLLMResponse(
   console.log('Using provider for base LLM:', provider);
   console.log('Using model for base LLM:', model);
   console.log('Conversation context length:', conversationContext.length);
-  console.log('Conversation context:', JSON.stringify(conversationContext, null, 2));
   
   // Initialize clients
   const { anthropicClient, openrouterClient } = initClients(config);
+  
+  // Apply message limit if configured
+  const limitedContext = applyMessageLimit(conversationContext, config.contextMessageLimit);
+  console.log(`Message limit applied: ${limitedContext.length}/${conversationContext.length} messages included`);
+  console.log('Limited conversation context:', JSON.stringify(limitedContext, null, 2));
   
   // Prepare messages with conversation context
   // We'll create a new array to hold the processed messages
   const processedMessages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = [];
   
   // First, let's process all messages in the conversation context
-  for (let i = 0; i < conversationContext.length; i++) {
-    const msg = conversationContext[i];
+  for (let i = 0; i < limitedContext.length; i++) {
+    const msg = limitedContext[i];
     
     if (msg.role === 'user') {
       // Include user messages as-is

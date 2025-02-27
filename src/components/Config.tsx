@@ -6,8 +6,23 @@ import { Prompt } from '../types/Prompt';
 function Config() {
   const navigate = useNavigate();
   
+  // Define the config type to include contextMessageLimit as number | null
+  type ConfigState = {
+    defaultProvider: 'anthropic' | 'openrouter';
+    openrouterApiKey: string;
+    anthropicApiKey: string;
+    anthropicSuperEgoModel: string;
+    anthropicBaseModel: string;
+    openrouterSuperEgoModel: string;
+    openrouterBaseModel: string;
+    superEgoConstitutionFile: string;
+    superEgoThinkingBudget: number;
+    contextMessageLimit: number | null;
+    saveHistory: boolean;
+  };
+
   // State for configuration
-  const [config, setConfig] = useState({
+  const [config, setConfig] = useState<ConfigState>({
     defaultProvider: 'openrouter',
     openrouterApiKey: '',
     anthropicApiKey: '',
@@ -17,6 +32,7 @@ function Config() {
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
     superEgoConstitutionFile: 'default',
     superEgoThinkingBudget: 4000, // Default to 4K tokens
+    contextMessageLimit: null, // Default to unlimited messages
     saveHistory: true
   });
   
@@ -273,6 +289,29 @@ function Config() {
               step="1000"
             />
             <p className="help-text">Minimum: 1,024 tokens. Recommended: 4,000 - 16,000 tokens.</p>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="contextMessageLimit">Context Message Limit:</label>
+            <select
+              id="contextMessageLimit"
+              name="contextMessageLimit"
+              value={config.contextMessageLimit === null ? "null" : config.contextMessageLimit}
+              onChange={(e) => {
+                const value = e.target.value === "null" ? null : parseInt(e.target.value);
+                setConfig(prev => ({ ...prev, contextMessageLimit: value }));
+                setIsDirty(true);
+              }}
+            >
+              <option value="null">Unlimited</option>
+              <option value="5">5 messages</option>
+              <option value="10">10 messages</option>
+              <option value="15">15 messages</option>
+              <option value="20">20 messages</option>
+              <option value="30">30 messages</option>
+              <option value="50">50 messages</option>
+            </select>
+            <p className="help-text">Limit the number of messages sent to the model. Unlimited uses the entire conversation history.</p>
           </div>
           
           <div className="form-group checkbox">

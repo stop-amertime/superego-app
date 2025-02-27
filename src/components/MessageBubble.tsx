@@ -20,17 +20,15 @@ interface MessageBubbleProps {
   onDelete?: (messageId: string) => void;
   onRetry?: (messageId: string) => void;
   onChangePrompt?: (messageId: string, promptId: string) => void;
-  showWithoutSuperego?: boolean; // Add prop for global toggle
 }
 
-function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt, showWithoutSuperego = false }: MessageBubbleProps) {
+function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showActions, setShowActions] = useState(false);
   const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
   
   // Load constitutions from constitutions.json and localStorage on component mount
   useEffect(() => {

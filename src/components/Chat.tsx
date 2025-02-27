@@ -47,6 +47,7 @@ function Chat() {
     openrouterBaseModel: 'anthropic/claude-3.7-sonnet',
     superEgoConstitutionFile: 'default',
     superEgoThinkingBudget: 4000, // Default to 4K tokens
+    contextMessageLimit: null, // Default to unlimited messages
     saveHistory: true
   });
   
