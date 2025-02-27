@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './Chat.css';
 import MessageBubble from './MessageBubble';
@@ -32,6 +32,9 @@ function Chat() {
   
   // State for current evaluation
   const [currentEvaluation, setCurrentEvaluation] = useState<Message | null>(null);
+  
+  // State for showing responses without superego (default to true)
+  const [showWithoutSuperego, setShowWithoutSuperego] = useState(true);
   
   // State for configuration
   const [config, setConfig] = useState<Config>({
@@ -463,13 +466,20 @@ function Chat() {
         }
       );
       
+      // Get the response without superego context from the global variable
+      const withoutSuperego = (window as any).lastResponseWithoutSuperego;
+      
       // Add the assistant message to the history
       const assistantResponse: Message = {
         id: Date.now().toString(),
         role: 'assistant',
         content: assistantContent,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        withoutSuperego: withoutSuperego // Add the response without superego context
       };
+      
+      // Clear the global variable
+      (window as any).lastResponseWithoutSuperego = undefined;
       
       setMessages(prev => [...prev, assistantResponse]);
     } catch (error) {
@@ -623,6 +633,13 @@ function Chat() {
             >
               Clear Chat
             </button>
+            <button 
+              onClick={() => setShowWithoutSuperego(prev => !prev)} 
+              className={`button secondary ${showWithoutSuperego ? 'active' : ''}`}
+              title="Toggle side-by-side comparison view"
+            >
+              {showWithoutSuperego ? 'Hide Comparison' : 'Show Comparison'}
+            </button>
             <Link to="/prompts" className="button secondary">Constitutions</Link>
             <Link to="/config" className="button secondary">Settings</Link>
           </div>
@@ -630,14 +647,47 @@ function Chat() {
         
         <div className="messages-container">
           {messages.map(message => (
-            <MessageBubble 
-              key={message.id} 
-              message={message} 
-              onEdit={handleEditMessage}
-              onDelete={handleDeleteMessage}
-              onRetry={handleRetryMessage}
-              onChangePrompt={message.role === 'superego' ? handleChangePastMessagePrompt : undefined}
-            />
+            <React.Fragment key={message.id}>
+              {message.role === 'assistant' && message.withoutSuperego && showWithoutSuperego ? (
+                <div className="side-by-side-container">
+                  <div className="side-by-side-column">
+                    <MessageBubble 
+                      message={message} 
+                      onEdit={handleEditMessage}
+                      onDelete={handleDeleteMessage}
+                      onRetry={handleRetryMessage}
+                      onChangePrompt={undefined}
+                    />
+                  </div>
+                  <div className="side-by-side-column">
+                    <div className="message-bubble assistant without-superego">
+                      <div className="message-header">
+                        <div className="message-info">
+                          <span className="message-sender">Assistant (without Superego)</span>
+                          <span className="message-time">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                      <div className="message-content">
+                        {message.withoutSuperego.split('\n').map((line, i, arr) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            {i < arr.length - 1 && <br />}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <MessageBubble 
+                  message={message} 
+                  onEdit={handleEditMessage}
+                  onDelete={handleDeleteMessage}
+                  onRetry={handleRetryMessage}
+                  onChangePrompt={message.role === 'superego' ? handleChangePastMessagePrompt : undefined}
+                />
+              )}
+            </React.Fragment>
           ))}
           
           {isSuperEgoLoading && (

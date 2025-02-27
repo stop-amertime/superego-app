@@ -64,6 +64,36 @@
   padding: 1rem;
   background-color: #f8fafc;
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Side-by-side layout for assistant messages */
+.side-by-side-container {
+  display: flex;
+  width: 100%;
+  gap: 20px;
+  margin: 0.75rem 0;
+}
+
+.side-by-side-column {
+  flex: 1;
+  max-width: calc(50% - 10px); /* Exactly half the space minus half the gap */
+}
+
+.side-by-side-column .message-bubble {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box; /* Include padding and border in the width calculation */
+}
+
+/* Override the default max-width for message bubbles in side-by-side layout */
+.side-by-side-column .message-bubble.assistant,
+.side-by-side-column .message-bubble.without-superego {
+  max-width: 100%;
+  margin-right: 0;
+  margin-left: 0;
 }
 
 .loading-indicator {
@@ -181,6 +211,11 @@
   background-color: #cbd5e0;
 }
 
+.button.secondary.active {
+  background-color: #4299e1;
+  color: white;
+}
+
 .button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -239,5 +274,10 @@
   
   .button.secondary:hover:not(:disabled) {
     background-color: #718096;
+  }
+  
+  .button.secondary.active {
+    background-color: #3182ce;
+    color: white;
   }
 }

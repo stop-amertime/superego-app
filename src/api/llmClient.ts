@@ -28,6 +28,7 @@ export interface Message {
   constitutionId?: string; // The ID of the constitution used for this message
   thinking?: string; // The thinking content from Claude's extended thinking feature
   thinkingTime?: string | null; // How long the thinking process took in seconds
+  withoutSuperego?: string; // The response without superego context (for comparison)
 }
 
 // Define the streaming callback type
@@ -351,6 +352,201 @@ Try:
 }
 
 /**
+ * Stream a response from the base LLM model without superego context
+ * This is used for comparison purposes
+ */
+export async function streamBaseLLMResponseWithoutSuperego(
+  userInput: string,
+  conversationContext: Message[],
+  config: Config
+): Promise<string> {
+  // Get the provider-specific model name for base LLM
+  const provider = config.defaultProvider;
+  const model = provider === 'anthropic' 
+    ? config.anthropicBaseModel 
+    : config.openrouterBaseModel;
+  
+  console.log('Using provider for base LLM (without superego):', provider);
+  console.log('Using model for base LLM (without superego):', model);
+  
+  // Initialize clients
+  const { anthropicClient, openrouterClient } = initClients(config);
+  
+  // Prepare messages without superego context
+  const filteredMessages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = [];
+  
+  // Filter out superego messages from the conversation context
+  for (let i = 0; i < conversationContext.length; i++) {
+    const msg = conversationContext[i];
+    
+    if (msg.role === 'user') {
+      // Include user messages as-is
+      filteredMessages.push({
+        role: 'user',
+        content: msg.content
+      });
+    } else if (msg.role === 'assistant') {
+      // Include assistant messages as-is
+      filteredMessages.push({
+        role: 'assistant',
+        content: msg.content
+      });
+    }
+    // Skip superego messages entirely
+  }
+  
+  const messages = filteredMessages;
+  
+  // Add the current user input if it's not already in the context
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== userInput) {
+    messages.push({
+      role: 'user',
+      content: userInput
+    });
+  }
+  
+  console.log('Filtered messages array length (without superego):', messages.length);
+  
+  let fullResponse = '';
+  
+  try {
+    if (provider === 'anthropic' && anthropicClient) {
+      console.log('Using Anthropic API for base LLM (without superego)');
+      
+      try {
+        // Convert messages to Anthropic format
+        const anthropicMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
+        
+        // Anthropic requires alternating user/assistant messages starting with a user message
+        if (messages.length > 0) {
+          // Ensure the first message is from a user
+          if (messages[0].role !== 'user') {
+            anthropicMessages.push({
+              role: 'user',
+              content: 'Hello'
+            });
+          }
+          
+          // Process the messages
+          for (let i = 0; i < messages.length; i++) {
+            const msg = messages[i];
+            
+            if (msg.role === 'system') {
+              // For system messages, add them to the previous user message or create a new user message
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === 'user') {
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
+              } else {
+                anthropicMessages.push({
+                  role: 'user',
+                  content: msg.content
+                });
+              }
+            } else if (msg.role === 'user' || msg.role === 'assistant') {
+              // If we have two consecutive messages with the same role, we need to combine them
+              if (anthropicMessages.length > 0 && anthropicMessages[anthropicMessages.length - 1].role === msg.role) {
+                anthropicMessages[anthropicMessages.length - 1].content += '\n\n' + msg.content;
+              } else {
+                anthropicMessages.push({
+                  role: msg.role,
+                  content: msg.content
+                });
+              }
+            }
+          }
+        } else {
+          // If we have no messages, add the user input
+          anthropicMessages.push({
+            role: 'user',
+            content: userInput
+          });
+        }
+        
+        // Get the assistant system prompt from the prompts.json file
+        const systemPrompt = await getAssistantPrompt("assistant_default");
+        
+        // Make the API call without streaming
+        const response = await anthropicClient.messages.create({
+          model: model,
+          system: systemPrompt,
+          messages: anthropicMessages,
+          max_tokens: 4000,
+        });
+        
+        if (response.content && response.content.length > 0) {
+          for (const block of response.content) {
+            if (block.type === 'text') {
+              fullResponse += block.text;
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error('Anthropic API error in base LLM (without superego):', error);
+        throw new Error(`Anthropic API Error in base LLM (without superego): ${error.message || error}`);
+      }
+    } else if (provider === 'openrouter' && openrouterClient) {
+      console.log('Using OpenRouter API for base LLM (without superego)');
+      
+      try {
+        // Convert messages to OpenAI format
+        const openaiMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
+        
+        // Process the messages
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i];
+          // Map roles to OpenAI format
+          if (msg.role === 'user') {
+            openaiMessages.push({
+              role: 'user',
+              content: msg.content
+            });
+          } else if (msg.role === 'assistant') {
+            openaiMessages.push({
+              role: 'assistant',
+              content: msg.content
+            });
+          } else if (msg.role === 'system') {
+            openaiMessages.push({
+              role: 'system',
+              content: msg.content
+            });
+          }
+        }
+        
+        // Get the assistant system prompt from the prompts.json file
+        const systemPrompt = await getAssistantPrompt("assistant_default");
+        
+        // Add system message to the beginning of the messages array
+        openaiMessages.unshift({
+          role: 'system',
+          content: systemPrompt
+        });
+        
+        // Make the API call without streaming
+        const response = await openrouterClient.chat.completions.create({
+          model: model,
+          messages: openaiMessages,
+        });
+        
+        if (response.choices && response.choices.length > 0 && response.choices[0].message.content) {
+          fullResponse = response.choices[0].message.content;
+        }
+      } catch (error: any) {
+        console.error('OpenRouter API error in base LLM (without superego):', error);
+        throw new Error(`OpenRouter API Error in base LLM (without superego): ${error.message || error}`);
+      }
+    } else {
+      throw new Error(`Provider ${provider} not configured or not supported`);
+    }
+  } catch (error: any) {
+    console.error(`Error in streamBaseLLMResponseWithoutSuperego: ${error.message || error}`);
+    throw error;
+  }
+  
+  return fullResponse;
+}
+
+/**
  * Stream a response from the base LLM model
  */
 export async function streamBaseLLMResponse(
@@ -631,6 +827,18 @@ Try:
     }
     
     throw error;
+  }
+  
+  // Also generate a response without superego context for comparison
+  try {
+    const withoutSuperego = await streamBaseLLMResponseWithoutSuperego(userInput, conversationContext, config);
+    console.log('Generated response without superego for comparison');
+    
+    // Store the withoutSuperego response in a global variable that can be accessed by the Chat component
+    (window as any).lastResponseWithoutSuperego = withoutSuperego;
+  } catch (error) {
+    console.error('Error generating response without superego:', error);
+    // Don't throw the error, just log it - we still want to return the main response
   }
   
   return fullResponse;

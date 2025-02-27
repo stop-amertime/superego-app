@@ -29,6 +29,21 @@
   border-left: 4px solid #ecc94b;
 }
 
+/* Without superego bubble styles */
+.message-bubble.without-superego {
+  margin-top: 0.5rem;
+  border-left: 3px solid #48bb78; /* Green for without superego */
+  background-color: #e6fffa; /* Lighter green background */
+  color: #2c7a7b; /* Teal text color */
+  margin-right: auto;
+  border-bottom-left-radius: 0;
+}
+
+.message-bubble.without-superego .message-sender {
+  color: #2c7a7b;
+  font-style: italic;
+}
+
 .message-header {
   display: flex;
   justify-content: space-between;
@@ -193,6 +208,62 @@
   color: #4a5568;
 }
 
+/* Side-by-side bubbles styles */
+.side-by-side-bubbles {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+.side-by-side-bubbles .bubble {
+  flex: 1;
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.side-by-side-bubbles .bubble.with-superego {
+  border-left: 3px solid #4299e1; /* Blue for with superego */
+}
+
+.side-by-side-bubbles .bubble.without-superego {
+  border-left: 3px solid #48bb78; /* Green for without superego */
+  background-color: #e6fffa; /* Lighter green background */
+}
+
+.side-by-side-bubbles .bubble-header {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.side-by-side-bubbles .bubble-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.side-by-side-bubbles .with-superego .bubble-label {
+  color: #3182ce;
+}
+
+.side-by-side-bubbles .without-superego .bubble-label {
+  color: #38a169;
+}
+
+.side-by-side-bubbles .bubble-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  color: #2d3748;
+  padding: 5px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
 @media (prefers-color-scheme: dark) {
   .message-bubble.user {
     background-color: #2c5282;
@@ -207,6 +278,17 @@
   .message-bubble.superego {
     background-color: #744210;
     color: #fefcbf;
+  }
+  
+  /* Dark mode styles for without superego bubble */
+  .message-bubble.without-superego {
+    background-color: #1a4a3c; /* Darker teal for dark mode */
+    color: #9ae6b4; /* Light green text */
+    border-left-color: #38a169; /* Darker green for dark mode */
+  }
+  
+  .message-bubble.without-superego .message-sender {
+    color: #9ae6b4;
   }
   
   /* Dark mode styles for thinking section */
@@ -251,5 +333,55 @@
   .edit-button.cancel {
     background-color: #4a5568;
     color: #e2e8f0;
+  }
+  
+  /* Dark mode styles for side-by-side comparison */
+  .comparison-column {
+    background-color: #1a202c;
+    border-color: #2d3748;
+  }
+  
+  .comparison-header {
+    border-bottom-color: #2d3748;
+  }
+  
+  .comparison-header h4 {
+    color: #e2e8f0;
+  }
+  
+  .comparison-content {
+    color: #e2e8f0;
+    background-color: #1f2937;
+  }
+  
+  /* Dark mode styles for side-by-side bubbles */
+  .side-by-side-bubbles .bubble {
+    background-color: #1a202c;
+    border-color: #2d3748;
+  }
+  
+  .side-by-side-bubbles .bubble-header {
+    border-bottom-color: #2d3748;
+  }
+  
+  .side-by-side-bubbles .bubble-content {
+    color: #e2e8f0;
+  }
+  
+  .side-by-side-bubbles .bubble.with-superego {
+    border-left-color: #3182ce; /* Darker blue for dark mode */
+  }
+  
+  .side-by-side-bubbles .bubble.without-superego {
+    background-color: #1a4a3c; /* Darker teal for dark mode */
+    border-left-color: #38a169; /* Darker green for dark mode */
+  }
+  
+  .side-by-side-bubbles .with-superego .bubble-label {
+    color: #63b3ed; /* Lighter blue for dark mode */
+  }
+  
+  .side-by-side-bubbles .without-superego .bubble-label {
+    color: #68d391; /* Lighter green for dark mode */
   }
 }
