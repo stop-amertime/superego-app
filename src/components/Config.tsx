@@ -194,16 +194,16 @@ function Config() {
             >
               {/* Built-in constitutions */}
               {(() => {
-                // Fetch built-in constitutions from prompts.json
+                // Fetch built-in constitutions from constitutions.json
                 const [builtInConstitutions, setBuiltInConstitutions] = useState<Prompt[]>([]);
                 
                 useEffect(() => {
                   const fetchConstitutions = async () => {
                     try {
-                      const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
+                      const response = await fetch(`${import.meta.env.BASE_URL}constitutions.json`);
                       if (response.ok) {
                         const data = await response.json();
-                        const constitutions = data.prompts.map((p: any) => ({
+                        const constitutions = data.constitutions.map((p: any) => ({
                           id: p.id,
                           name: p.name,
                           content: p.content,
@@ -212,10 +212,10 @@ function Config() {
                         }));
                         setBuiltInConstitutions(constitutions);
                       } else {
-                        console.error('Failed to load prompts.json file');
+                        console.error('Failed to load constitutions.json file');
                       }
                     } catch (error) {
-                      console.error('Error loading constitutions:', error);
+                      console.error('Error loading constitutions.json file:', error);
                     }
                   };
                   

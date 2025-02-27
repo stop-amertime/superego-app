@@ -29,19 +29,19 @@ function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: M
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   
-  // Load constitutions from prompts.json and localStorage on component mount
+  // Load constitutions from constitutions.json and localStorage on component mount
   useEffect(() => {
     if (message.role === 'superego') {
       const loadConstitutions = async () => {
-        // Load built-in constitutions from prompts.json
+        // Load built-in constitutions from constitutions.json
         const builtInConstitutions: Prompt[] = [];
         
         try {
-          const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
+          const response = await fetch(`${import.meta.env.BASE_URL}constitutions.json`);
           if (response.ok) {
             const data = await response.json();
             // Convert the constitutions from the JSON file to Prompt objects
-            data.prompts.forEach((p: any) => {
+            data.constitutions.forEach((p: any) => {
               builtInConstitutions.push({
                 id: p.id,
                 name: p.name,
@@ -51,10 +51,10 @@ function MessageBubble({ message, onEdit, onDelete, onRetry, onChangePrompt }: M
               });
             });
           } else {
-            console.error('Failed to load prompts.json file');
+            console.error('Failed to load constitutions.json file');
           }
         } catch (error) {
-          console.error('Error loading prompts.json file:', error);
+          console.error('Error loading constitutions.json file:', error);
         }
         
         // Load custom constitutions from localStorage

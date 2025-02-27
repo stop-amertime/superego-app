@@ -34,9 +34,9 @@ export interface Message {
 export type OnContentCallback = (content: string) => void;
 
 /**
- * Get the superego instructions based on the constitution ID
+ * Get the superego constitution based on the constitution ID
  */
-export async function getSuperEgoInstructions(constitutionId: string): Promise<string> {
+export async function getConstitution(constitutionId: string): Promise<string> {
   // First check custom constitutions in localStorage
   const savedConstitutions = localStorage.getItem('superego-constitutions');
   if (savedConstitutions) {
@@ -51,16 +51,42 @@ export async function getSuperEgoInstructions(constitutionId: string): Promise<s
     }
   }
   
-  // Then try to fetch from the prompts.json file
+  // Then try to fetch from the constitutions.json file
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}constitutions.json`);
+    if (response.ok) {
+      const data = await response.json();
+      const constitution = data.constitutions.find((p: any) => p.id === constitutionId);
+      if (constitution) {
+        return constitution.content;
+      } else {
+        console.error(`Constitution with ID ${constitutionId} not found in constitutions.json`);
+      }
+    } else {
+      console.error('Failed to load constitutions.json file');
+    }
+  } catch (error) {
+    console.error('Error loading constitutions.json file:', error);
+  }
+  
+  // Throw an error if the constitution cannot be found
+  throw new Error(`Constitution with ID ${constitutionId} not found. Make sure constitutions.json is properly configured.`);
+}
+
+/**
+ * Get the assistant prompt based on the prompt ID
+ */
+export async function getAssistantPrompt(promptId: string = "assistant_default"): Promise<string> {
+  // Try to fetch from the prompts.json file
   try {
     const response = await fetch(`${import.meta.env.BASE_URL}prompts.json`);
     if (response.ok) {
       const data = await response.json();
-      const constitution = data.prompts.find((p: any) => p.id === constitutionId);
-      if (constitution) {
-        return constitution.content;
+      const prompt = data.prompts.find((p: any) => p.id === promptId);
+      if (prompt) {
+        return prompt.content;
       } else {
-        console.error(`Constitution with ID ${constitutionId} not found in prompts.json`);
+        console.error(`Assistant prompt with ID ${promptId} not found in prompts.json`);
       }
     } else {
       console.error('Failed to load prompts.json file');
@@ -69,8 +95,9 @@ export async function getSuperEgoInstructions(constitutionId: string): Promise<s
     console.error('Error loading prompts.json file:', error);
   }
   
-  // Throw an error if the constitution cannot be found
-  throw new Error(`Constitution with ID ${constitutionId} not found. Make sure prompts.json is properly configured.`);
+  // Return a default prompt if the requested one cannot be found
+  console.warn(`Using default assistant prompt as ${promptId} was not found`);
+  return "You are equipped with a superego agent that screens user requests for potential harm before they reach you. You may see outputs from this superego agent in the chat alongside user messages. The superego evaluates each user message and decides whether to allow it to proceed to you. \n\nWhen you see messages from the superego, they represent this screening process and are not part of the user's direct communication with you. You should not respond to or mention these superego messages in your replies. Simply take them into consideration when formulating your responses to the user.";
 }
 
 /**
@@ -119,7 +146,7 @@ export async function streamSuperEgoResponse(
   const { anthropicClient, openrouterClient } = initClients(config);
   
   // Get instructions from the configured constitution file
-  const systemPrompt = await getSuperEgoInstructions(config.superEgoConstitutionFile);
+  const systemPrompt = await getConstitution(config.superEgoConstitutionFile);
   // Check if this is the special test string for redacted thinking
   const isRedactedThinkingTest = userInput.includes('ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB');
   
@@ -464,10 +491,8 @@ export async function streamBaseLLMResponse(
         console.log('Anthropic messages prepared:', anthropicMessages.length);
         console.log('Anthropic messages:', JSON.stringify(anthropicMessages, null, 2));
         
-        // Add system prompt about superego
-        const systemPrompt = `You are equipped with a superego agent that screens user requests for potential harm before they reach you. You may see outputs from this superego agent in the chat alongside user messages. The superego evaluates each user message and decides whether to allow it to proceed to you. 
-
-When you see messages from the superego, they represent this screening process and are not part of the user's direct communication with you. You should not respond to or mention these superego messages in your replies. Simply take them into consideration when formulating your responses to the user.`;
+        // Get the assistant system prompt from the prompts.json file
+        const systemPrompt = await getAssistantPrompt("assistant_default");
         
         // Initialize the stream
         console.log('Initializing Anthropic stream for base LLM...');
@@ -529,10 +554,8 @@ When you see messages from the superego, they represent this screening process a
         console.log('OpenRouter messages prepared:', openaiMessages.length);
         console.log('OpenRouter messages:', JSON.stringify(openaiMessages, null, 2));
         
-        // Add system prompt about superego
-        const systemPrompt = `You are equipped with a superego agent that screens user requests for potential harm before they reach you. You may see outputs from this superego agent in the chat alongside user messages. The superego evaluates each user message and decides whether to allow it to proceed to you. 
-
-When you see messages from the superego, they represent this screening process and are not part of the user's direct communication with you. You should not respond to or mention these superego messages in your replies. Simply take them into consideration when formulating your responses to the user.`;
+        // Get the assistant system prompt from the prompts.json file
+        const systemPrompt = await getAssistantPrompt("assistant_default");
         
         // Add system message to the beginning of the messages array
         openaiMessages.unshift({
