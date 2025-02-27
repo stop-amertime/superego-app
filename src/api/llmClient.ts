@@ -689,7 +689,7 @@ export async function streamBaseLLMResponseWithoutSuperego(
         }
         
         // Get the assistant system prompt from the prompts.json file
-        const systemPrompt = await getAssistantPrompt("assistant_default");
+        // const systemPrompt = await getAssistantPrompt("assistant_default");
         
         // Add a clean system prompt that doesn't mention the superego
         openaiMessages.unshift({
