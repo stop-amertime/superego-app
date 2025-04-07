@@ -267,6 +267,15 @@ function Config() {
           <p className="help-text">
             <Link to="/prompts" className="link">Manage your constitutions in the Constitution Manager</Link>
           </p>
+          <a 
+            href="https://drive.google.com/drive/folders/1qzcuBsolDCIJNo-1eiYLOY-qtvV1vJ78" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="button secondary"
+            style={{ marginTop: '10px', display: 'inline-block' }} 
+          >
+            More Constitutions...
+          </a>
         </div>
         
         <div className="config-section">
