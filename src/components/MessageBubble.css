@@ -8,22 +8,22 @@
 }
 
 .message-bubble.user {
-  background-color: #bee3f8;
-  color: #2c5282;
+  background-color: hsl(206, 100%, 97%); /* Very light blue */
+  color: hsl(210, 50%, 35%); /* Darker blue text */
   margin-left: auto;
   border-bottom-right-radius: 0;
 }
 
 .message-bubble.assistant {
-  background-color: #c6f6d5;
-  color: #276749;
+  background-color: hsl(145, 80%, 97%); /* Very light green */
+  color: hsl(150, 50%, 30%); /* Darker green text */
   margin-right: auto;
   border-bottom-left-radius: 0;
 }
 
 .message-bubble.superego {
-  background-color: #fefcbf;
-  color: #744210;
+  background-color: hsl(55, 100%, 97%); /* Very light yellow */
+  color: hsl(40, 60%, 30%); /* Darker brown/orange text */
   margin-right: auto;
   border-bottom-left-radius: 0;
   border-left: 4px solid #ecc94b;
@@ -32,15 +32,15 @@
 /* Without superego bubble styles */
 .message-bubble.without-superego {
   margin-top: 0.5rem;
-  border-left: 3px solid #48bb78; /* Green for without superego */
-  background-color: #e6fffa; /* Lighter green background */
-  color: #2c7a7b; /* Teal text color */
+  border-left: 3px solid hsl(160, 70%, 85%); /* Pastel teal border */
+  background-color: hsl(160, 80%, 98%); /* Very light pastel teal */
+  color: hsl(165, 50%, 30%); /* Darker teal text */
   margin-right: auto;
   border-bottom-left-radius: 0;
 }
 
 .message-bubble.without-superego .message-sender {
-  color: #2c7a7b;
+  color: hsl(165, 50%, 30%); /* Darker teal text */
   font-style: italic;
 }
 
@@ -266,29 +266,29 @@
 
 @media (prefers-color-scheme: dark) {
   .message-bubble.user {
-    background-color: #2c5282;
-    color: #bee3f8;
+    background-color: hsl(225, 30%, 25%); /* Muted dark blue */
+    color: hsl(210, 60%, 85%); /* Lighter blue text */
   }
   
   .message-bubble.assistant {
-    background-color: #276749;
-    color: #c6f6d5;
+    background-color: hsl(150, 30%, 20%); /* Muted dark green */
+    color: hsl(145, 50%, 88%); /* Lighter green text */
   }
   
   .message-bubble.superego {
-    background-color: #744210;
-    color: #fefcbf;
+    background-color: hsl(30, 40%, 22%); /* Muted dark brown/orange */
+    color: hsl(45, 70%, 90%); /* Lighter yellow text */
   }
   
   /* Dark mode styles for without superego bubble */
   .message-bubble.without-superego {
-    background-color: #1a4a3c; /* Darker teal for dark mode */
-    color: #9ae6b4; /* Light green text */
-    border-left-color: #38a169; /* Darker green for dark mode */
+    background-color: hsl(165, 35%, 18%); /* Muted dark teal */
+    color: hsl(160, 50%, 85%); /* Lighter teal text */
+    border-left-color: hsl(150, 30%, 30%); /* Muted green border */
   }
   
   .message-bubble.without-superego .message-sender {
-    color: #9ae6b4;
+    color: hsl(160, 50%, 85%); /* Lighter teal text */
   }
   
   /* Dark mode styles for thinking section */
